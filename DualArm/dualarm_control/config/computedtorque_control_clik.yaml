@@ -6,55 +6,26 @@ dualarm:
   computedtorque_control_clik:
     type: dualarm_controller/ComputedTorque_Control_CLIK
     joints:
-      - dualarm_joint1
-      - dualarm_joint2
-      - dualarm_joint3
-      - dualarm_joint4
-      - dualarm_joint5
-      - dualarm_joint6
-      - dualarm_joint7
-      - dualarm_joint8
-      - dualarm_joint9
-      - dualarm_joint10
-      - dualarm_joint11
-      - dualarm_joint12
-      - dualarm_joint13
-      - dualarm_joint14
+      - Arm_Joint_1
+      - Arm_Joint_2
+      - Arm_Joint_3
+      - Arm_Joint_4
+      - Arm_Joint_5
 
     gains:
-      dualarm_joint1:
+      Arm_Joint_1:
         pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint2:
+      Arm_Joint_2:
         pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint3:
+      Arm_Joint_3:
         pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint4:
+      Arm_Joint_4:
         pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint5:
+      Arm_Joint_5:
         pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint6:
-        pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint7:
-        pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint8:
-        pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint9:
-        pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint10:
-        pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint11:
-        pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint12:
-        pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint13:
-        pid: {p: 20.0, i: 100.0, d: 1.0}
-      dualarm_joint14:
-        pid: {p: 20.0, i: 100.0, d: 1.0}
-
 
     root_link: world
-    tip_link1: link_08
-    tip_link2: link_14
+    tip_link1: Arm_Link_05
 
     ctr_obj: 1
 

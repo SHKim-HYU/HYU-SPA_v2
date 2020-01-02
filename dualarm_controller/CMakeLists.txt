@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(Eigen3 3.0 REQUIRED NO_MODULES)
+find_package(Eigen3 REQUIRED NO_MODULES)
 
 find_package(OpenMP)
 
@@ -123,8 +123,12 @@ include_directories(
         include
         ${catkin_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIR}
+	${EIGEN3_INCLUDE_DIR}
+	#/usr/include/eigen3
 )
-
+link_directories(
+  /usr/lib/cmake/eigen3
+)
 ## Declare a C++ library
  add_library(${PROJECT_NAME}
          src/computedtorque_control_clik.cpp
@@ -132,10 +136,12 @@ include_directories(
          include/LieOperator.cpp
          include/LieDynamics.cpp
          include/PoEKinematics.cpp
-         include/PropertyDefinition.cpp
-         include/SerialManipulator.cpp
+         include/PropertyDefinition.h
          include/Trajectory.cpp
+	 include/SerialRobot.cpp
  )
+
+#         include/SerialManipulator.cpp
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -158,7 +164,7 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
- target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES} )
+ target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES})
 if(NOT TARGET OpenMP::OpenMP_CXX)
 
  find_package(Threads REQUIRED)

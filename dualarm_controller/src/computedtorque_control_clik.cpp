@@ -31,7 +31,8 @@
 
 #define _USE_MATH_DEFINES
 
-#include "SerialManipulator.h"
+#include "SerialRobot.h"
+#include "../include/SerialRobot.h"
 
 #define R2D M_PI/180.0
 #define D2R 180.0/M_PI
@@ -93,18 +94,18 @@ namespace  dualarm_controller
             for (size_t i = 0; i < n_joints_; i++)
             {
                 std::string si = std::to_string(i + 1);
-                if (n.getParam("/dualarm/computedtorque_control_clik/gains/dualarm_joint" + si + "/pid/p", Kp[i]))
+                if (n.getParam("/dualarm/computedtorque_control_clik/gains/Arm_Joint_" + si + "/pid/p", Kp[i]))
                 {
                     Kp_(i) = Kp[i];
                 }
                 else
                 {
-                    std::cout << "/dualarm/computedtorque_control_clik/gains/dualarm_joint" + si + "/pid/p" << std::endl;
+                    std::cout << "/dualarm/computedtorque_control_clik/gains/Arm_Joint_" + si + "/pid/p" << std::endl;
                     ROS_ERROR("Cannot find pid/p gain");
                     return false;
                 }
 
-                if (n.getParam("/dualarm/computedtorque_control_clik/gains/dualarm_joint" + si + "/pid/i", Ki[i]))
+                if (n.getParam("/dualarm/computedtorque_control_clik/gains/Arm_Joint_" + si + "/pid/i", Ki[i]))
                 {
                     Ki_(i) = Ki[i];
                 }
@@ -114,7 +115,7 @@ namespace  dualarm_controller
                     return false;
                 }
 
-                if (n.getParam("/dualarm/computedtorque_control_clik/gains/dualarm_joint" + si + "/pid/d", Kd[i]))
+                if (n.getParam("/dualarm/computedtorque_control_clik/gains/Arm_Joint_" + si + "/pid/d", Kd[i]))
                 {
                     Kd_(i) = Kd[i];
                 }
@@ -202,11 +203,6 @@ namespace  dualarm_controller
                 ROS_ERROR("Could not find tip link name");
                 return false;
             }
-            if (!n.getParam("tip_link2", tip_name2))
-            {
-                ROS_ERROR("Could not find tip link name");
-                return false;
-            }
 
 
             if (!kdl_tree_.getChain(root_name, tip_name1, kdl_chain_))
@@ -252,7 +248,7 @@ namespace  dualarm_controller
             // ********* 5. 각종 변수 초기화 *********
 
             // 5.1 KDL Vector 초기화 (사이즈 정의 및 값 0)
-            x_cmd_.data = Eigen::VectorXd::Zero(2*num_taskspace);
+            x_cmd_.data = Eigen::VectorXd::Zero(num_taskspace);
 
             qd_.data = Eigen::VectorXd::Zero(n_joints_);
             qd_dot_.data = Eigen::VectorXd::Zero(n_joints_);
@@ -280,8 +276,7 @@ namespace  dualarm_controller
 
             // 6.2 subsriber
             sub_x_cmd_ = n.subscribe<std_msgs::Float64MultiArray>("command",
-                    1, &ComputedTorque_Control_CLIK::commandCB,
-                    this);
+                    1, &ComputedTorque_Control_CLIK::commandCB, this);
             event = 0; // subscribe 받기 전: 0
             // subscribe 받은 후: 1
 
@@ -290,19 +285,19 @@ namespace  dualarm_controller
 
         void commandCB(const std_msgs::Float64MultiArrayConstPtr &msg)
         {
-            if (msg->data.size() != 2*num_taskspace)
+            if (msg->data.size() != num_taskspace)
             {
                 ROS_ERROR_STREAM("Dimension of command (" << msg->data.size() << ") does not match DOF of Task Space (" << 2 << ")! Not executing!");
                 return;
             }
 
-            for (int i = 0; i < 2*num_taskspace; i++)
+            for (int i = 0; i < num_taskspace; i++)
             {
                 x_cmd_(i) = msg->data[i];
             }
 
-            event = 1; // subscribe 받기 전: 0
-            // subscribe 받은 후: 1
+            event = 1;  // subscribe 받기 전: 0
+                        // subscribe 받은 후: 1
         }
 
         void starting(const ros::Time &time) override
@@ -310,11 +305,10 @@ namespace  dualarm_controller
             t = 0.0;
             ROS_INFO("Starting Computed Torque Controller with Closed-Loop Inverse Kinematics");
 
-            cManipulator = new SerialManipulator;
-            Control = new HYUControl::Controller(cManipulator);
+            cManipulator = new robot;
+            Control = new HYUControl::Controller(n_joints_);
 
-            cManipulator->UpdateManipulatorParam();
-
+            cManipulator->robot_update_R();
             for(int i=0; i<n_joints_; i++)
             {
                 Control->SetPIDGain(Kp_(i), Kd_(i), Ki_(i), i);
@@ -340,15 +334,17 @@ namespace  dualarm_controller
             Eigen::Map<VectorXd>(q, n_joints_) = q_.data;
             Eigen::Map<VectorXd>(qdot, n_joints_) = qdot_.data;
 
-            cManipulator->pKin->PrepareJacobian(q);
-            cManipulator->pDyn->PrepareDynamics(q, qdot);
+            cManipulator->pKin->Unflag_isInfoupdate();
+            cManipulator->pKin->HTransMatrix(q);
+            cManipulator->pDyn->Prepare_Dynamics(q,qdot);
 
-            Control->InvDynController(q, qdot, dq, dqdot, dqddot, torque, dt);
+
+            //Control->InvDynController(q, qdot, dq, dqdot, dqddot, torque, dt);
 
             for (int i = 0; i < n_joints_; i++)
             {
-                joints_[i].setCommand(torque[i]);
-                //joints_[i].setCommand(0.0);
+                //joints_[i].setCommand(torque[i]);
+                joints_[i].setCommand(0.0);
             }
 
             // ********* 4. data 저장 *********
@@ -443,11 +439,11 @@ namespace  dualarm_controller
         KDL::JntArray q_chain[2];
         KDL::JntArray qdot_chain[2];
 
-        double q[14], qdot[14];
-        double dq[14] = {0.0,};
-        double dqdot[14] = {0.0,};
-        double dqddot[14] = {0.0,};
-        double torque[14] = {0.0,};
+        double q[5], qdot[5];
+        double dq[5] = {0.0,};
+        double dqdot[5] = {0.0,};
+        double dqddot[5] = {0.0,};
+        double torque[5] = {0.0,};
 
         // Task Space State
         // ver. 01
@@ -484,7 +480,7 @@ namespace  dualarm_controller
         std_msgs::Float64MultiArray msg_xd_, msg_x_, msg_ex_;
         std_msgs::Float64MultiArray msg_SaveData_;
 
-        SerialManipulator *cManipulator;
+        robot *cManipulator;
         HYUControl::Controller *Control;
 
 

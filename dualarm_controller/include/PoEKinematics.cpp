@@ -1,315 +1,243 @@
+/*
+ * Kinematics.cpp
+ *
+ *  Created on: Aug 7, 2018
+ *      Author: spec
+ */
+
 #include "PoEKinematics.h"
 
 namespace HYUMotionKinematics {
 
-PoEKinematics::PoEKinematics():m_NumChain(1),m_DoF(6),isInfoUpdated(0)
+PoEKinematics::PoEKinematics()
 {
-	this->mBodyJacobian.resize(6*this->m_NumChain, this->m_DoF);
-	this->mSpaceJacobian.resize(6*this->m_NumChain, this->m_DoF);
-	this->mAnalyticJacobian.resize(6*this->m_NumChain, this->m_DoF);
-	Theta=0;
+	isInfoUpdated = 0;
+	RobotDoF = 6;
 }
 
-PoEKinematics::PoEKinematics( const MatrixXi &_ChainMat ):isInfoUpdated(0)
+PoEKinematics::PoEKinematics(int DoF)
+:isInfoUpdated(0)
 {
-	ChainMatrix = _ChainMat;
+	RobotDoF = DoF;
+}
 
-	this->m_DoF = ChainMatrix.cols();
-	this->m_NumChain = ChainMatrix.rows();
+PoEKinematics::~PoEKinematics() {
+}
+// LEFT //
+void PoEKinematics::UpdateKinematicInfo(Vector3d _w, Vector3d _p, Vector3d _l, int _link_num)
+{
+	M[0] << 1, 0, 0, 163e-3,
+			0, 1, 0, 0,
+			0, 0, 1, 0,
+			0, 0, 0, 1;
 
-	for(int i=0; i<this->m_NumChain; ++i)
-	{
-		ChainJointCount[i]=0;
-		for(int j=(this->m_DoF-1); j>=0; --j)
-		{
-			if(ChainMatrix(i,j) == 1)
-			{
-				if(ChainJointCount[i] == 0)
-				{
-					JointEndNum[i] = j+1;
-				}
-				ChainJointCount[i]++;
-			}
-		}
-		this->Arr[i].resize(ChainJointCount[i]);
+	_M[_link_num - 1][_link_num] = this->GetM(_l);
+	v_se3[_link_num - 1] = this->GetTwist(_w, this->GetV(_w, _p));
+
+	if(_link_num == 1){
+		M[_link_num] = _M[_link_num-1][_link_num];
+	}
+	else{
+		M[_link_num] = M[_link_num-1]*_M[_link_num-1][_link_num];
 	}
 
-	this->mBodyJacobian.resize(6*this->m_NumChain, this->m_DoF);
-	this->mSpaceJacobian.resize(6*this->m_NumChain, this->m_DoF);
-	this->mAnalyticJacobian.resize(6*this->m_NumChain, this->m_DoF);
-
-	Theta=0;
-}
-
-PoEKinematics::~PoEKinematics()
-{
-
-}
-
-void PoEKinematics::UpdateKinematicInfo( Vector3d _w, Vector3d _p, Vector3d _l, int _link_num )
-{
-	if(_link_num == 0)
-	{
-		M[_link_num] = GetM(_p);
-	}
-	M[_link_num+1] = GetM(_l);
-
-	v_se3[_link_num] = GetTwist(_w, GetV(_w, _p));
+	A[_link_num] = AdjointMatrix(inverse_SE3(M[_link_num]))*v_se3[_link_num-1];
 
 	isInfoUpdated = 1;
 }
 
-Vector3d PoEKinematics::GetV( const Vector3d &_w, const Vector3d &_p )
+// RIGHT //
+void PoEKinematics::UpdateKinematicInfo_R(Vector3d _w, Vector3d _p, Vector3d _l, int _link_num) //_l : length of link
 {
-	return (-SkewMatrix(_w))*_p;
+	M[0].setIdentity();
+	v_se3[0].setZero(); Exp_S[0].setZero();
+
+
+	M[_link_num] = this->GetM(_l);
+	v_se3[_link_num] = this->GetTwist(_w, this->GetV(_w, _p));  //twist
+
+	_M[_link_num - 1][_link_num] = M[_link_num - 1].inverse()*M[_link_num]; //MR p.291
+	_M[_link_num][_link_num - 1] = M[_link_num].inverse()*M[_link_num - 1];
+
+	A[_link_num] = AdjointMatrix(inverse_SE3(M[_link_num]))*v_se3[_link_num];
+
+	isInfoUpdated = 1;
 }
 
-SE3 PoEKinematics::GetM( const Vector3d &_link )
+Vector3d PoEKinematics::GetV(Vector3d _w, Vector3d _p)
 {
-	SE3_Tmp.setIdentity();
-	SE3_Tmp.block<3, 1>(0, 3) = _link;
-	return SE3_Tmp;
+	return (-SkewMatrix(_w))*_p;    //MR p.139
 }
 
-se3 PoEKinematics::GetTwist( const Vector3d &_w, const Vector3d &_v )
+SE3 PoEKinematics::GetM(Vector3d _link)
 {
-	se3_Tmp.head(3) = _w;
-	se3_Tmp.tail(3) = _v;
-
-	return se3_Tmp;
+	SE3 res;
+	res.setIdentity();
+	res.block<3, 1>(0, 3) = _link;
+	return res;
 }
 
-void PoEKinematics::HTransMatrix( const double *_q )
+se3 PoEKinematics::GetTwist(Vector3d _w, Vector3d _v)
 {
-	int TCounter;
+	se3 twist;
 
-	for (int end = 0; end < this->m_DoF; ++end)
-	{
-		Exp_S[end] = SE3Matrix(v_se3[end], _q[end]);
+	twist.head(3) = _w;
+	twist.tail(3) = _v;
+
+	return twist;
+}
+
+void PoEKinematics::HTransMatrix(double q[])
+{
+
+	for (int end = 1; end <= ROBOT_DOF; ++end){
+		Exp_S[end] = SE3Matrix(v_se3[end], q[end-1]);
+
 	}
-
-	for(int i=0; i < this->m_NumChain; ++i)
-	{
-		SE3_Tmp.setIdentity();
-		TCounter=0;
-		Arr[i].setZero();
-
-		for(int j=0; j < this->m_DoF; j++)
-		{
-			if(ChainMatrix(i,j) == 1)
-			{
-				SE3_Tmp *= Exp_S[j];
-
-				Arr[i](TCounter) = j+1;
-				TCounter++;
-
-				T[0][j+1].setZero();
-				T[0][j+1].noalias() += SE3_Tmp*M[j+1];
-			}
-		}
-
-		for(int k=0; k<TCounter; k++)
-		{
-			for(int l=(k+1); l<TCounter; l++)
-			{
-				T[Arr[i](k)][Arr[i](l)].setZero();
-				T[Arr[i](k)][Arr[i](l)].noalias() += inverse_SE3(T[0][Arr[i](k)])*T[0][Arr[i](l)];
-			}
-		}
-	}
-
-	return;
-}
-
-void PoEKinematics::PrepareJacobian( const double *_q )
-{
-	HTransMatrix(_q);
-	SpaceJacobian();
-	SpaceToBodyJacobian();
-	AnalyticJacobian();
-	ScaledTransJacobian();
-	return;
-}
-
-void PoEKinematics::SpaceJacobian( void )
-{
-	mSpaceJacobian.setZero();
-	for(int i=0; i < this->m_NumChain; ++i)
-	{
-		SE3_Tmp.setIdentity();
-
-		for(int j=0; j < this->m_DoF; ++j)
-		{
-			if(ChainMatrix(i,j) == 1)
-			{
-				SE3_Tmp*=Exp_S[j];
-				if(j == 0)
-				{
-					mSpaceJacobian.block(6*i, j, 6, 1) = v_se3[j];
-				}
-				else
-				{
-					mSpaceJacobian.block(6*i, j, 6, 1).noalias() += AdjointMatrix(SE3_Tmp)*v_se3[j];
-				}
-			}
-		}
-	}
-
-	return;
-}
-
-void PoEKinematics::SpaceToBodyJacobian( void )
-{
-	mBodyJacobian.setZero();
-	for(int i=0; i < this->m_NumChain; i++)
-	{
-		mBodyJacobian.block(6*i,0,6,this->m_DoF).noalias() += AdjointMatrix(inverse_SE3(T[0][JointEndNum[i]]))*mSpaceJacobian.block(6*i,0,6,this->m_DoF);
-	}
-	return;
-}
-
-void PoEKinematics::AnalyticJacobian( void )
-{
-	Mat_Tmp.resize(6*this->m_NumChain, 6*this->m_NumChain);
-	Mat_Tmp.setZero();
-
-	for(int i=0; i < this->m_NumChain; i++)
-	{
-		LogSO3(T[0][JointEndNum[i]].block(0,0,3,3), Omega, Theta);
-		if(abs(Theta) <= 1e-7)
-		{
-			Mat_Tmp.block(6*i,6*i,3,3) = Matrix3d::Identity();
-		}
-		else
-		{
-			r = Omega*Theta;
-			Mat_Tmp.block(6*i,6*i,3,3) += Matrix3d::Identity();
-			Mat_Tmp.block(6*i,6*i,3,3) += 1/2*LieOperator::SkewMatrix(r);
-			Mat_Tmp.block(6*i,6*i,3,3) += ((1/pow(Theta,2) - (1-cos(Theta)/(2*Theta*sin(Theta))))*LieOperator::SkewMatrixSquare(r));
-		}
-		Mat_Tmp.block((6*i+3),(6*i+3),3,3) = T[0][JointEndNum[i]].block(0,0,3,3);
-	}
-
-	mAnalyticJacobian.setZero();
-	mAnalyticJacobian.noalias() += Mat_Tmp*mBodyJacobian;
-	return;
-}
-
-void PoEKinematics::GetpinvJacobian( MatrixXd &_pinvJacobian )
-{
-	_pinvJacobian = mAnalyticJacobian.completeOrthogonalDecomposition().pseudoInverse();
-
 	/*
-	Eigen::BDCSVD<MatrixXd> svd(mAnalyticJacobian, Eigen::ComputeThinU | Eigen::ComputeThinV);
-	svd.setThreshold(1e-5);
-	_pinvJacobian = svd.matrixV() * svd.singularValues().cwiseInverse().asDiagonal() * svd.matrixU().transpose();
+	T[0][1] = M[0]*Exp_S[0]*M[1];
+	T[0][2] = M[0]*Exp_S[0]*Exp_S[1]*M[2];
+	T[0][3] = M[0]*Exp_S[0]*Exp_S[1]*Exp_S[2]*M[3];
+	T[0][4] = M[0]*Exp_S[0]*Exp_S[1]*Exp_S[2]*Exp_S[3]*M[4];
+	T[0][5] = M[0]*Exp_S[0]*Exp_S[1]*Exp_S[2]*Exp_S[3]*Exp_S[4]*M[5];
+	T[0][6] = M[0]*Exp_S[0]*Exp_S[1]*Exp_S[2]*Exp_S[3]*Exp_S[4]*Exp_S[5]*M[6];
 	*/
-	return;
+	T[0][1] = Exp_S[1]*M[1];
+	T[0][2] = Exp_S[1]*Exp_S[2]*M[2];
+	T[0][3] = Exp_S[1]*Exp_S[2]*Exp_S[3]*M[3];
+	T[0][4] = Exp_S[1]*Exp_S[2]*Exp_S[3]*Exp_S[4]*M[4];
+	T[0][5] = Exp_S[1]*Exp_S[2]*Exp_S[3]*Exp_S[4]*Exp_S[5]*M[5];
+
+//	T[0][6] = Exp_S[0]*Exp_S[1]*Exp_S[2]*Exp_S[3]*Exp_S[4]*Exp_S[5]*M[6];
+
+
+
+	for(int i=1; i<ROBOT_DOF; ++i){              //MR P.92
+		for(int j=i+1; j<=ROBOT_DOF;++j)
+			T[i][j] = inverse_SE3(T[0][i])*T[0][j];
+	}
+	isInfoUpdated = 1;
+}
+se3 PoEKinematics::Twistout(int i)
+{
+	se3 res;
+	res = v_se3[i];
+	return res;
 }
 
-void PoEKinematics::ScaledTransJacobian(void)
+Jaco PoEKinematics::SpaceJacobian(void)
 {
-	ScaledFactor.resize(this->mAnalyticJacobian.cols());
-	Vec_Tmp.resize(this->mAnalyticJacobian.rows());
+	Jacobian.setZero();
 
-	for(int i=0; i<this->mAnalyticJacobian.cols(); i++)
+	Jacobian.block<6,1>(0,0) = v_se3[1];
+
+	Jacobian.block<6,1>(0,1) = AdjointMatrix(Exp_S[1])*v_se3[2];
+
+	Jacobian.block<6,1>(0,2) = AdjointMatrix(Exp_S[1]*Exp_S[2])*v_se3[3];
+
+	Jacobian.block<6,1>(0,3) = AdjointMatrix(Exp_S[1]*Exp_S[2]*Exp_S[3])*v_se3[4];
+
+	Jacobian.block<6,1>(0,4) = AdjointMatrix(Exp_S[1]*Exp_S[2]*Exp_S[3]*Exp_S[4])*v_se3[5];
+
+	//Jacobian.block<ROBOT_DOF,1>(0,5) = AdjointMatrix(Exp_S[0]*Exp_S[1]*Exp_S[2]*Exp_S[3]*Exp_S[4])*v_se3[5];
+
+	return Jacobian;
+}
+
+Jaco PoEKinematics::BodyJacobian(void)
+{
+	_SpaceJacobian = SpaceJacobian();
+	_BodyJacobian = AdjointMatrix(inverse_SE3(T[0][ROBOT_DOF]))*_SpaceJacobian;
+	return _BodyJacobian;
+}
+
+Matrix<double, 3, 6> PoEKinematics::AnalyticJacobian(void)
+{
+	_AnalyticJacobian = T[0][ROBOT_DOF].block<3,3>(0,0)*BodyJacobian().block<3,6>(3,0);
+	return _AnalyticJacobian;
+}
+
+InvJaco PoEKinematics::Pinv(Jaco _j)
+{
+	InvJaco PJ;
+	Jaco J; J << _j;
+
+	//moore-penrose inverse
+	int m = 0, n = 0;
+	m = J.rows(); n = J.cols();
+
+	if (n > m)//Fat
 	{
-		Vec_Tmp = this->mAnalyticJacobian.col(i);
-		ScaledFactor(i) = Vec_Tmp.squaredNorm()-1;
+		PJ = J.transpose()*((J*J.transpose()).inverse());
+	}
+	else if (m > n)//tall
+	{
+		PJ = ((J.transpose()*J).inverse())*J.transpose();
+	}
+	else if (m = n)//Square
+	{
+		PJ << J.inverse();
 	}
 
-	mScaledTransJacobian = ScaledFactor.asDiagonal()*this->mAnalyticJacobian.transpose();
-	return;
-}
+	//QR-Decomposition
+/*	CompleteOrthogonalDecomposition<MatrixXf> cod(J);
+	cod.setThreshold(1e-5);
+	PJ = cod.pseudoInverse();*/
 
-void PoEKinematics::GetScaledTransJacobian( MatrixXd &_ScaledTransJacobian )
-{
-	_ScaledTransJacobian = mScaledTransJacobian;
-	return;
-}
+	//SVD
 
-void PoEKinematics::GetManipulability( double *_TaskEigen, double *_OrientEigen )
+
+	return PJ;
+}
+Matrix<double,6,3> PoEKinematics::Pinv(Matrix<double,3,6> _j)
 {
-	Eigen::JacobiSVD<MatrixXd> SVDsolver;
-	for(int i=0; i<this->m_NumChain; i++)
+	Matrix<double,6,3> PJ;
+	Matrix<double,3,6> J; J << _j;
+	int m = 0, n = 0;
+	m = J.rows(); n = J.cols();
+
+	if (n > m)//Fat
 	{
-		Mat_Tmp = this->mAnalyticJacobian.block(6*i,0, 3,this->m_DoF);
-		SVDsolver.compute(Mat_Tmp*Mat_Tmp.transpose(), Eigen::ComputeFullU | Eigen::ComputeFullV);
-		_OrientEigen[i] = SVDsolver.singularValues().maxCoeff() / SVDsolver.singularValues().minCoeff();
-
-		Mat_Tmp = this->mAnalyticJacobian.block((6*i+3),0, 3,this->m_DoF);
-		SVDsolver.compute(Mat_Tmp*Mat_Tmp.transpose(), Eigen::ComputeFullU | Eigen::ComputeFullV);
-		_TaskEigen[i] = SVDsolver.singularValues().maxCoeff() / SVDsolver.singularValues().minCoeff();
+		PJ = J.transpose()*((J*J.transpose()).inverse());
 	}
-	return;
-}
-
-void PoEKinematics::GetTaskVelocity( double *_qdot, VectorXd *_TaskVelocity, int &_size )
-{
-	_size = this->m_NumChain;
-
-	Vec_Tmp.resize(6*this->m_NumChain);
-	Vec_Tmp.setZero();
-	Vec_Tmp.noalias() += mAnalyticJacobian*Map<VectorXd>(_qdot, this->m_DoF);
-
-	for(int i=0; i<this->m_NumChain; i++)
+	else if (m > n)//tall
 	{
-		_TaskVelocity[i] = Vec_Tmp.segment(6*i, 6);
+		PJ = ((J.transpose()*J).inverse())*J.transpose();
 	}
-	return;
-}
-
-void PoEKinematics::GetForwardKinematics( Vector3d *_Position, Vector3d *_Orientation, int &_NumChain )
-{
-	_NumChain = this->m_NumChain;
-
-	for(int i=0; i<this->m_NumChain; i++)
+	else if (m = n)//Square
 	{
-		_Position[i].setZero();
-		_Position[i] = T[0][JointEndNum[i]].block(0,3,3,1);
-		SO3toRollPitchYaw(T[0][JointEndNum[i]].block(0,0,3,3), _Orientation[i]);
+		PJ << J.inverse();
 	}
-
-	return;
+	return PJ;
 }
-
-SE3 PoEKinematics::GetForwardKinematicsSE3( const int &_EndPosition ) const
+Vector3d PoEKinematics::ForwardKinematics(void)
 {
-	return T[0][JointEndNum[_EndPosition]];
+	if(isInfoUpdated)
+		RotMat = T[0][ROBOT_DOF].block<3,3>(0,0);
+		return T[0][ROBOT_DOF].block<3,1>(0,3);
 }
 
-void PoEKinematics::GetAngleAxis( Vector3d *_Axis, double *_Angle, int &_NumChain )
+Vector3d PoEKinematics::GetEulerAngle(void)
 {
-	_NumChain = this->m_NumChain;
+	Vector3d rpy;
 
-	for(int i=0; i<this->m_NumChain; i++)
-	{
-		LogSO3(T[0][JointEndNum[i]].block(0,0,3,3), _Axis[i], _Angle[i]);
-	}
+	rpy(0) = atan2(RotMat(2,1),RotMat(2,2));
+	rpy(1) = -asin(RotMat(2,0));
+	rpy(2) = atan2(RotMat(1, 0) / cos(rpy(1)), RotMat(0, 0) / cos(rpy(1)));
 
-	return;
+	if(isInfoUpdated)
+		return rpy;
 }
 
-void PoEKinematics::RollPitchYawtoSO3( const double &_Roll_rad, const double &_Pitch_rad, const double &_Yaw_rad, Matrix3d &_RotMat)
+Matrix3d PoEKinematics::Rot(void)
 {
-	_RotMat = Eigen::AngleAxisd(_Yaw_rad, Vector3d::UnitZ())*Eigen::AngleAxisd(_Pitch_rad, Vector3d::UnitY())*Eigen::AngleAxisd(_Roll_rad, Vector3d::UnitX());
-	return;
+	if(isInfoUpdated)
+		return T[0][ROBOT_DOF].block<3,3>(0,0);
 }
 
-void PoEKinematics::SO3toRollPitchYaw( const Matrix3d &_RotMat, Vector3d &_Orientation )
-{
-	q = _RotMat;
-
-	_Orientation(0) = atan2(2.0*(q.x()*q.w()+q.y()*q.z()) , 1.0-2.0*(pow(q.x(),2) + pow(q.y(),2)) );
-
-	double sinp = 2.0*( q.w()*q.y() - q.z()*q.x() );
-	if(abs(sinp) >= 1)
-		_Orientation(1) = copysign(M_PI/2, sinp);
-	else
-		_Orientation(1) = asin(sinp);
-
-	_Orientation(2) = atan2( 2.0*(q.w()*q.z() + q.x()*q.y()) , 1.0-2.0*( pow(q.y(),2) + pow(q.z(),2) ) );
-	return;
+void PoEKinematics::Unflag_isInfoupdate(){
+	if(isInfoUpdated)
+		isInfoUpdated = 0;
 }
 
-}
+} /* namespace HYUSpesA */

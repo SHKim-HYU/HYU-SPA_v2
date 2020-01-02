@@ -1,85 +1,109 @@
 #pragma once
-/**
- * @file PropertyDefinition.h
- * @date 2019-06-10
- * @author Junho Park
- * @version 1.0.0
- */
 
-#define ROBOT_DOF 14 /**< Number of Manipulator joint*/
-//#define _WITH_HAND_
 
-/**
- * @brief Kinematics Infomation
- */
-typedef struct{
-	double w_x; 	/**< Twist x-axis*/
-	double w_y;		/**< Twist y-axis*/
-	double w_z;		/**< Twist z-axis*/
-	double q_x;		/**< Twist x-axis*/
-	double q_y;		/**< Twist y-axis*/
-	double q_z;		/**< Twist z-axis*/
-	double l_x;		/**< Initial Configuration x-axis*/
-	double l_y;		/**< Initial Configuration y-axis*/
-	double l_z;		/**< Initial Configuration z-axis*/
-}robot_kinematic_info;
+#define ROBOT_DOF 5
 
-/**
- * @brief Dynamic Information
- */
-typedef struct{
-	double mass_kg; 	/**< mass of each link in kg*/
-	double Ixx_kgm2; 	/**< xx direction inertia in kgm^2*/
-	double Iyy_kgm2; 	/**< xy direction inertia in kgm^2*/
-	double Izz_kgm2; 	/**< xz direction inertia in kgm^2*/
-	double Ixy_kgm2; 	/**< yy direction inertia in kgm^2*/
-	double Iyz_kgm2; 	/**< yz direction inertia in kgm^2*/
-	double Izx_kgm2; 	/**< zz direction inertia in kgm^2*/
-	double CoM_x;		/**< x direction CoM in m*/
-	double CoM_y;		/**< y direction CoM in m*/
-	double CoM_z;		/**< z direction CoM in m*/
-}robot_dynamic_info;
 
-/**
- * @brief motor information
- */
-typedef struct{
-	int 	motor_harmonic; 		/**< gear ratio*/
-	int 	enc_size; 				/**< resolution of encoder  */
-	double 	max_current_A;			/**< maximum continuous current of motor */
-	double 	torque_const_Nm_A; 		/**< Torque constant of motor in Nm A*/
-	int 	Offset;					/**< Absolute Encoder Zero-position Offset*/
-}robot_motor_info;
+// Right ARM
 
-typedef struct{
-	double VelThreshold;
-	double FrictionTorque;
-}FrictionMap;
+#define BASE_Y 0.016
+#define BASE_Z 0.908
 
-typedef struct{
-	double a;
-	double b;
-	double c;
-	double d;
-	double e;
-	double f;
-}FrictionTanh;
+#define LINK_12 0.05055 //m
+#define LINK_23	0.18470
+#define LINK_34 0.1153
+#define LINK_45 0.1289
+#define LINK_56 0.1555
 
-/**
- * @brief Predefined kinematic object
- */
-extern robot_kinematic_info serial_Kinematic_info[];
+//#define LINK_6e 11e-3
 
-/**
- * @brief Predefined dynamic object
- */
-extern robot_dynamic_info serial_Dynamic_info[];
+#define MASS_1 0.723  //kg
+#define MASS_2 1.426
+#define MASS_3 0.243
+#define MASS_4 1.189
+#define MASS_5 0.690
 
-/**
- * @brief Predefined system object
- */
-extern robot_motor_info serial_Motor_info[];
+//#define MASS_6 0.0612
 
-extern FrictionMap frictionmap[];
+/*
+#define MASS_MOTOR_1 0.34
+#define MASS_MOTOR_2 0.34
+#define MASS_MOTOR_3 0.26
+#define MASS_MOTOR_4 0.21
+#define MASS_MOTOR_5 0.114
+#define MASS_MOTOR_6 0.114
+*/
 
-extern FrictionTanh frictiontanh[];
+//kgm^2
+#define J_Ixx_1 0.000514412
+#define J_Ixy_1 0
+#define J_Ixz_1 0
+#define J_Iyy_1 0.000346530
+#define J_Iyz_1 0
+#define J_Izz_1 0.000557816
+
+#define J_Ixx_2 0.003681825
+#define J_Ixy_2 0
+#define J_Ixz_2 0
+#define J_Iyy_2 0.001048794
+#define J_Iyz_2 0
+#define J_Izz_2 0.004071229
+
+#define J_Ixx_3 0.00001152581
+#define J_Ixy_3 0
+#define J_Ixz_3 0
+#define J_Iyy_3 0.00002210614
+#define J_Iyz_3 0
+#define J_Izz_3 0.00001130552
+
+#define J_Ixx_4 0.00324899669
+#define J_Ixy_4 0
+#define J_Ixz_4 0
+#define J_Iyy_4 0.00054844144
+#define J_Iyz_4 0
+#define J_Izz_4 0.00324613078
+
+#define J_Ixx_5 0.000454119
+#define J_Ixy_5 0
+#define J_Ixz_5 0
+#define J_Iyy_5 0.00015170768
+#define J_Iyz_5 0
+#define J_Izz_5 0.00044727983
+
+/*
+#define J_Ixx_6 17.4509
+#define J_Ixy_6 0
+#define J_Ixz_6 0
+#define J_Iyy_6 17.4509
+#define J_Iyz_6 0
+#define J_Izz_6 33.7129
+*/
+
+#define HARMONIC_120 120
+#define HARMONIC_100 100
+#define HARMONIC_50 50
+#define ENC_2048 2048
+#define ENC_1024 1024
+#define ENC_1000 1000
+#define ENC_512 512
+#define ABS_ENC_19 524288
+
+#define MAX_CURRENT_1 2.55
+#define MAX_CURRENT_2 2.55
+#define MAX_CURRENT_3 2.83
+
+#define MAX_CURRENT_4 2.83
+#define MAX_CURRENT_5 1.84
+
+//#define MAX_CURRENT_6 0.56
+
+#define TORQUE_CONST_1 0.183 //Nm/A
+#define TORQUE_CONST_2 0.183
+#define TORQUE_CONST_3 0.091
+
+#define TORQUE_CONST_4 0.091
+#define TORQUE_CONST_5 0.094
+
+//#define TORQUE_CONST_6 0.1166
+
+#define EFFICIENCY 90.0

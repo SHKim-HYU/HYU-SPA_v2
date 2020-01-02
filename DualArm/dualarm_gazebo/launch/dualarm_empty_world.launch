@@ -2,18 +2,7 @@
     <include file="$(find gazebo_ros)/launch/empty_world.launch"
     />
 
-    <arg name="model" default="$(find dualarm_description)/urdf/dual_arm.urdf"/>
-    <arg name="gui" default="false"/>
+  <param name="robot_description" command="$(find xacro)/xacro.py --inorder '$(find dualarm_description)/urdf/right_sim.xacro'" />
 
-    <param name="robot_description" textfile="$(arg model)"/>
-    <param name="use_gui" value="$(arg gui)"/>
-
-    <node
-            name="urdf_spawner"
-            pkg="gazebo_ros"
-            type="spawn_model"
-            respawn="false"
-            output="screen"
-            args="-urdf -model dualarm -param robot_description"
-    />
+  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen" args="-urdf -model dualarm -param robot_description"/>
 </launch>

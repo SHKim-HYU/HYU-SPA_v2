@@ -7,80 +7,153 @@
 
 #include "Trajectory.h"
 
-namespace HYUControl {
+namespace hyuCtrl {
 
-Trajectory::Trajectory()
-:m_isReady(0)
-{
+
+
+Trajectory::Trajectory():dq(0), dq_dot(0), dq_ddot(0) {
 
 }
-
 
 Trajectory::~Trajectory() {
 
 }
 
-void Trajectory::SetPoly5th( const double &_CurrentTime, Eigen::VectorXd &_StartPos, Eigen::VectorXd &_StartVel, Eigen::VectorXd &_FinalPos, double &_Duration, int &_NumJoint )
+void Trajectory::SetPolynomial5th(int NumJoint, float startPos, float FinalPos, float InitTime, float Duration)
 {
-	TrajDuration = _Duration;
-	TrajInitTime = _CurrentTime;
+	TrajDuration[NumJoint] = Duration;
+	TrajInitTime[NumJoint] = InitTime;
 
-	NumberJoint = _NumJoint;
+	m_cof << 1, 0, 	0, 		0, 				0, 					0,
+			 0, 1, 	0, 		0, 				0, 					0,
+			 0, 0, 	2, 		0, 				0, 					0,
+			 1, powf(TrajDuration[NumJoint],1), 	powf(TrajDuration[NumJoint],2), 	powf(TrajDuration[NumJoint],3), 	powf(TrajDuration[NumJoint],4), 	powf(TrajDuration[NumJoint],5),
+			 0, 1, 									2*powf(TrajDuration[NumJoint],1), 	3*powf(TrajDuration[NumJoint],2), 	4*powf(TrajDuration[NumJoint],3), 	5*powf(TrajDuration[NumJoint],4),
+			 0, 0, 									2, 									6*powf(TrajDuration[NumJoint],1), 	12*powf(TrajDuration[NumJoint],2),	20*powf(TrajDuration[NumJoint],3);
 
-	this->Coefficient.resize(6, NumberJoint);
-	Coefficient.setZero();
-	this->StateVec.resize(6, NumberJoint);
-	StateVec.setZero();
+	StateVec[NumJoint] << startPos,
+						0,
+						0,
+						FinalPos,
+						0,
+						0;
 
-	m_cof << 1.0, 0.0, 					0.0, 						0.0, 						0.0, 						0.0,
-			 0.0, 1.0, 					0.0, 						0.0, 						0.0, 						0.0,
-			 0.0, 0.0, 					2.0, 						0.0, 						0.0, 						0.0,
-			 1.0, pow(TrajDuration,1), 	pow(TrajDuration,2), 		pow(TrajDuration,3), 		pow(TrajDuration,4), 		pow(TrajDuration,5),
-			 0.0, 1.0, 					2.0*pow(TrajDuration,1), 	3.0*pow(TrajDuration,2), 	4.0*pow(TrajDuration,3), 	5.0*pow(TrajDuration,4),
-			 0.0, 0.0, 					2.0, 						6.0*pow(TrajDuration,1), 	12.0*pow(TrajDuration,2),	20.0*pow(TrajDuration,3);
+	Coefficient[NumJoint] = m_cof.inverse()*StateVec[NumJoint];
+	m_isReady[NumJoint] = 1;
 
-	StateVec.row(0) = _StartPos.transpose();
-	StateVec.row(1) = _StartVel.transpose();
-	StateVec.row(3) = _FinalPos.transpose();
+}
+void Trajectory::SetPolynomial5th(int NumJoint, state *act, float FinalPos, float InitTime, float Duration,float *q_)
+{
+	TrajDuration[NumJoint] = Duration;
+	TrajInitTime[NumJoint] = InitTime;
 
-	Coefficient.noalias() += m_cof.inverse()*StateVec;
-	m_isReady = 1;
+	m_cof << 1, 0, 	0, 		0, 				0, 					0,
+			 0, 1, 	0, 		0, 				0, 					0,
+			 0, 0, 	2, 		0, 				0, 					0,
+			 1, powf(TrajDuration[NumJoint],1), 	powf(TrajDuration[NumJoint],2), 	powf(TrajDuration[NumJoint],3), 	powf(TrajDuration[NumJoint],4), 	powf(TrajDuration[NumJoint],5),
+			 0, 1, 									2*powf(TrajDuration[NumJoint],1), 	3*powf(TrajDuration[NumJoint],2), 	4*powf(TrajDuration[NumJoint],3), 	5*powf(TrajDuration[NumJoint],4),
+			 0, 0, 									2, 									6*powf(TrajDuration[NumJoint],1), 	12*powf(TrajDuration[NumJoint],2),	20*powf(TrajDuration[NumJoint],3);
+
+	StateVec[NumJoint] << act->j_q(NumJoint),
+			//act->j_q_d(NumJoint),
+			//act->j_q_dd(NumJoint),
+						0,
+						0,
+						FinalPos,
+						0,
+						0;
+	q_[0]=StateVec[NumJoint](0);
+	q_[1]=StateVec[NumJoint](1);
+	q_[2]=StateVec[NumJoint](2);
+	Coefficient[NumJoint] = m_cof.inverse()*StateVec[NumJoint];
+	m_isReady[NumJoint] = 1;
 
 }
 
-void Trajectory::Poly5th( const double &_CurrentTime, Eigen::VectorXd &_dq, Eigen::VectorXd &_dqdot, Eigen::VectorXd &_dqddot )
+float Trajectory::Polynomial5th(int NumJoint, float CurrentTime, int *Flag)
 {
-	if( (_CurrentTime - TrajInitTime) >= TrajDuration )
+	if((CurrentTime - TrajInitTime[NumJoint]) >= (TrajDuration[NumJoint]))
 	{
-		m_isReady = 0;
+		//des->q(NumJoint) = StateVec[NumJoint](3);
+		//des->q_dot(NumJoint) = StateVec[NumJoint](4);
+		//des->q_ddot(NumJoint) = StateVec[NumJoint](5);
 
-		_dq = StateVec.row(3).transpose(); // Final Position
-		_dqdot = StateVec.row(4).transpose();
-		_dqddot = StateVec.row(5).transpose();
 
+		m_isReady[NumJoint] = 0;
+		*Flag = 0;
+		return StateVec[NumJoint](3);
 	}
-	else if( m_isReady )
+
+	if(m_isReady[NumJoint])
 	{
-		TrajTime = _CurrentTime - TrajInitTime;
+		dq=0;
+		dq_dot = 0;
+		dq_ddot = 0;
 
-		_dq.setZero();
-		_dqdot.setZero();
-		_dqddot.setZero();
-
-		for(int i=0; i<NumberJoint; i++)
+		TrajTime[NumJoint] = CurrentTime - TrajInitTime[NumJoint];
+		for(int i=0; i<6; ++i)
 		{
-			for(int j=0; j<6; j++)
-			{
-				_dq(i) += pow(TrajTime, j)*Coefficient(j,i);
-				if(j>=1)
-					_dqdot(i) += j*pow(TrajTime, j-1)*Coefficient(j,i);
-				if(j>=2)
-					_dqddot(i) += j*(j-1)*pow(TrajTime, j-2)*Coefficient(j,i);
-			}
+			dq += powf(TrajTime[NumJoint], i)*Coefficient[NumJoint](i);
+			if(i>=1)
+				dq_dot += (i)*powf(TrajTime[NumJoint], i-1)*Coefficient[NumJoint](i);
+			if(i>=2)
+				dq_ddot += i*(i-1)*powf(TrajTime[NumJoint], i-2)*Coefficient[NumJoint](i);
 		}
+		return dq;
+
 	}
-	return;
+	else
+	{
+		return 0;
+	}
+
 }
+float Trajectory::Polynomial5th(int NumJoint, float CurrentTime, int *Flag, float *q_)
+{
+	if((CurrentTime - TrajInitTime[NumJoint]) >= (TrajDuration[NumJoint]))
+	{
+		//des->q(NumJoint) = StateVec[NumJoint](3);
+		//des->q_dot(NumJoint) = StateVec[NumJoint](4);
+		//des->q_ddot(NumJoint) = StateVec[NumJoint](5);
+		q_[0]=StateVec[NumJoint](3);
+		q_[1]=StateVec[NumJoint](4);
+		q_[2]=StateVec[NumJoint](5);
+
+		m_isReady[NumJoint] = 0;
+		*Flag = 0;
+		return StateVec[NumJoint](3);
+	}
+
+	if(m_isReady[NumJoint])
+	{
+		dq=0;
+		dq_dot = 0;
+		dq_ddot = 0;
+
+		TrajTime[NumJoint] = CurrentTime - TrajInitTime[NumJoint];
+		for(int i=0; i<6; ++i)
+		{
+			dq += powf(TrajTime[NumJoint], i)*Coefficient[NumJoint](i);
+			if(i>=1)
+				dq_dot += (i)*powf(TrajTime[NumJoint], i-1)*Coefficient[NumJoint](i);
+			if(i>=2)
+				dq_ddot += i*(i-1)*powf(TrajTime[NumJoint], i-2)*Coefficient[NumJoint](i);
+		}
+
+		q_[0]=dq;
+		q_[1]=dq_dot;
+		q_[2]=dq_ddot;
+		return dq;
+
+	}
+	else
+	{
+		return 0;
+	}
+
+}
+
+
 
 } /* namespace HYUDA */
 
