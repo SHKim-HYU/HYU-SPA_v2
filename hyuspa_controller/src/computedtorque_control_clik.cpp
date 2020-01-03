@@ -27,7 +27,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include <cmath>
-#include "Controller.h"
+#include <Controller.h>
 
 #define _USE_MATH_DEFINES
 
@@ -400,6 +400,8 @@ namespace  hyuspa_controller
             }
             count++;
         }
+        robot *cManipulator;
+        HYUControl::Controller *Control;
 
     private:
         // others
@@ -480,8 +482,7 @@ namespace  hyuspa_controller
         std_msgs::Float64MultiArray msg_xd_, msg_x_, msg_ex_;
         std_msgs::Float64MultiArray msg_SaveData_;
 
-        robot *cManipulator;
-        HYUControl::Controller *Control;
+
 
 
     };

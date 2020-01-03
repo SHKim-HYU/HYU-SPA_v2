@@ -34,9 +34,9 @@ class Controller : public robot {
 public:
 	Controller();
 	Controller(int JointNum);
-	virtual ~Controller();
+	virtual ~Controller(){};
 
-	void ClearError(void);
+	//void ClearError(void);
 
 	void SetPIDGain(double _Kp, double _Kd, double _Ki, int _JointNum);
 	void PDController_gravity(double *q, double *q_dot, double *dq, double *dq_dot, double *toq, Jointd &g_mat);
@@ -48,10 +48,10 @@ public:
 
 
 	void TorqueOutput(double *p_toq, int maxtoq, int *p_dir);
-	void TorqueOutput(double *p_toq , int maxtoq);
+	//void TorqueOutput(double *p_toq , int maxtoq);
 	Jointd return_u0(void);
 
-	void IKAccel(state *des, state *act);
+	//void IKAccel(state *des, state *act);
 
 	int int_flag=0;
 
