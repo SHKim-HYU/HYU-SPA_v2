@@ -1,10 +1,10 @@
-<?xml version="1.0" ?>
+<?xml version="1.0" encoding="utf-8"?>
 
-<robot name="dualarm" xmlns:xacro="http://www.ros.org/wiki/xacro">
+<robot name="hyuspa" xmlns:xacro="http://www.ros.org/wiki/xacro">
   
   <!-- BGN - Include -->
-  <xacro:include filename="$(find dualarm_description)/urdf/robot_parameters.xacro" />
-  <xacro:include filename="$(find dualarm_description)/urdf/links_joints.xacro" />
+  <xacro:include filename="$(find hyuspa_description)/urdf/robot_parameters.xacro" />
+  <xacro:include filename="$(find hyuspa_description)/urdf/links_joints.xacro" />
   <xacro:property name="PI" value="3.1415926535897931"/>
 
   <!-- END - Include -->
@@ -25,7 +25,7 @@
               ixx="4.451" ixy="1.3837E-05" ixz="-5.3838E-05"
               iyy="4.4296" iyz="0.12976"
               izz="0.13769"              
-              meshfile="package://dualarm_description/meshes/dualarm/Arm_Link_00.STL"
+              meshfile="package://hyuspa_description/meshes/hyuspa/Arm_Link_00.STL"
               meshscale="1 1 1" />
               
   <m_joint name="Arm_Joint_1" type="revolute"
@@ -41,7 +41,7 @@
               ixx="0.00050315737" ixy="0.00000655128" ixz="0.00000042443"
               iyy="0.00031839677" iyz="0.00000023010"
               izz="0.00052445446"
-              meshfile="package://dualarm_description/meshes/dualarm/Arm_Link_01.STL"
+              meshfile="package://hyuspa_description/meshes/hyuspa/Arm_Link_01.STL"
               meshscale="1 1 1" />
                
   <m_joint name="Arm_Joint_2" type="revolute"
@@ -57,7 +57,7 @@
               ixx="0.00368181349" ixy="-0.00018327606" ixz="-0.00000268131"
               iyy="0.00104405709" iyz="0.00000334569"
               izz="0.00406650369"
-              meshfile="package://dualarm_description/meshes/dualarm/Arm_Link_02.STL"
+              meshfile="package://hyuspa_description/meshes/hyuspa/Arm_Link_02.STL"
               meshscale="1 1 1" />
               
   <m_joint name="Arm_Joint_3" type="revolute"
@@ -73,7 +73,7 @@
               ixx="0.00068284" ixy="-8.5183E-06" ixz="-4.7514E-07"
               iyy="0.00022011" iyz="8.8649E-06"
               izz="0.00063402"
-              meshfile="package://dualarm_description/meshes/dualarm/Arm_Link_03.STL"
+              meshfile="package://hyuspa_description/meshes/hyuspa/Arm_Link_03.STL"
               meshscale="1 1 1" />
               
   <m_joint name="Arm_Joint_4" type="revolute"
@@ -89,7 +89,7 @@
               ixx="0.00324613078" ixy="-0.00000202519" ixz="0.00000011493"
               iyy="0.00054844144" iyz="0.00023013877"
               izz="0.00324899669"
-              meshfile="package://dualarm_description/meshes/dualarm/Arm_Link_04.STL"
+              meshfile="package://hyuspa_description/meshes/hyuspa/Arm_Link_04.STL"
               meshscale="1 1 1" />
               
   <m_joint name="Arm_Joint_5" type="revolute"
@@ -105,7 +105,7 @@
               ixx="0.00290786470" ixy="0.00008047904" ixz="-0.00001276791"
               iyy="0.00028211059" iyz="-0.00014451678"
               izz="0.00306362830"
-              meshfile="package://dualarm_description/meshes/dualarm/Arm_Link_05.STL"
+              meshfile="package://hyuspa_description/meshes/hyuspa/Arm_Link_05.STL"
               meshscale="1 1 1" />
 
   <!-- END - Robot description -->
@@ -115,6 +115,7 @@
     <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
     <legacyModeNS>true</legacyModeNS>
     <controlPeriod>0.001</controlPeriod>
+    <robotNamespace>/hyuspa</robotNamespace>
     </plugin>
   </gazebo>
 

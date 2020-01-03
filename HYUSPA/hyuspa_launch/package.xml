@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>dualarm_launch</name>
+  <name>hyuspa_launch</name>
   <version>1.0.0</version>
-  <description>The dualarm_launch package</description>
+  <description>The hyuspa_launch package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->

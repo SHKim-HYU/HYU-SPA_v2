@@ -1,10 +1,10 @@
-dualarm:
+hyuspa:
   joint_state_controller:
     type: joint_state_controller/JointStateController
     publish_rate: 1000
 
   computedtorque_control_clik:
-    type: dualarm_controller/ComputedTorque_Control_CLIK
+    type: hyuspa_controller/ComputedTorque_Control_CLIK
     joints:
       - Arm_Joint_1
       - Arm_Joint_2

@@ -21,25 +21,24 @@
 #include <kdl/chainjnttojacsolver.hpp>        // jacobian
 #include <kdl/chainfksolverpos_recursive.hpp> // forward kinematics
 #include <kdl/chainfksolvervel_recursive.hpp> // forward kinematics
-#include <kdl/tree.hpp>
+
 
 #include <boost/scoped_ptr.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <cmath>
-#include <Controller.h>
+#include "Controller.h"
 
 #define _USE_MATH_DEFINES
 
 #include "SerialRobot.h"
-#include "../include/SerialRobot.h"
 
 #define R2D M_PI/180.0
 #define D2R 180.0/M_PI
 #define num_taskspace 6
 #define SaveDataMax 97
 
-namespace  dualarm_controller
+namespace  hyuspa_controller
 {
     class ComputedTorque_Control_CLIK : public controller_interface::Controller<hardware_interface::EffortJointInterface>
     {
@@ -48,6 +47,7 @@ namespace  dualarm_controller
         {
             // ********* 1. Get joint name / gain from the parameter server *********
             // 1.0 Control objective & Inverse Kinematics mode
+            ROS_INFO("#######Initialize start##########");
             if (!n.getParam("ctr_obj", ctr_obj_))
             {
                 ROS_ERROR("Could not find control objective");
@@ -67,7 +67,7 @@ namespace  dualarm_controller
                 return false;
             }
             n_joints_ = joint_names_.size();
-
+            ROS_INFO("#########joint info is obtained########");
             if (n_joints_ == 0)
             {
                 ROS_ERROR("List of joint names is empty.");
@@ -94,18 +94,18 @@ namespace  dualarm_controller
             for (size_t i = 0; i < n_joints_; i++)
             {
                 std::string si = std::to_string(i + 1);
-                if (n.getParam("/dualarm/computedtorque_control_clik/gains/Arm_Joint_" + si + "/pid/p", Kp[i]))
+                if (n.getParam("/hyuspa/computedtorque_control_clik/gains/Arm_Joint_" + si + "/pid/p", Kp[i]))
                 {
                     Kp_(i) = Kp[i];
                 }
                 else
                 {
-                    std::cout << "/dualarm/computedtorque_control_clik/gains/Arm_Joint_" + si + "/pid/p" << std::endl;
+                    std::cout << "/hyuspa/computedtorque_control_clik/gains/Arm_Joint_" + si + "/pid/p" << std::endl;
                     ROS_ERROR("Cannot find pid/p gain");
                     return false;
                 }
 
-                if (n.getParam("/dualarm/computedtorque_control_clik/gains/Arm_Joint_" + si + "/pid/i", Ki[i]))
+                if (n.getParam("/hyuspa/computedtorque_control_clik/gains/Arm_Joint_" + si + "/pid/i", Ki[i]))
                 {
                     Ki_(i) = Ki[i];
                 }
@@ -115,7 +115,7 @@ namespace  dualarm_controller
                     return false;
                 }
 
-                if (n.getParam("/dualarm/computedtorque_control_clik/gains/Arm_Joint_" + si + "/pid/d", Kd[i]))
+                if (n.getParam("/hyuspa/computedtorque_control_clik/gains/Arm_Joint_" + si + "/pid/d", Kd[i]))
                 {
                     Kd_(i) = Kd[i];
                 }
@@ -129,7 +129,7 @@ namespace  dualarm_controller
             // 1.2.2 Closed-loop Inverse Kinematics Controller
             if (ctr_obj_ == 1)
             {
-                if (!n.getParam("/dualarm/computedtorque_control_clik/clik_gain/K_regulation", K_regulation_))
+                if (!n.getParam("/hyuspa/computedtorque_control_clik/clik_gain/K_regulation", K_regulation_))
                 {
                     ROS_ERROR("Cannot find clik regulation gain");
                     return false;
@@ -138,7 +138,7 @@ namespace  dualarm_controller
 
             else if (ctr_obj_ == 2)
             {
-                if (!n.getParam("/dualarm/computedtorque_control_clik/clik_gain/K_tracking", K_tracking_))
+                if (!n.getParam("/hyuspa/computedtorque_control_clik/clik_gain/K_tracking", K_tracking_))
                 {
                     ROS_ERROR("Cannot find clik tracking gain");
                     return false;
@@ -487,4 +487,4 @@ namespace  dualarm_controller
     };
 }
 
-PLUGINLIB_EXPORT_CLASS(dualarm_controller::ComputedTorque_Control_CLIK,controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(hyuspa_controller::ComputedTorque_Control_CLIK,controller_interface::ControllerBase)

@@ -1,8 +1,0 @@
-<launch>
-    <include file="$(find gazebo_ros)/launch/empty_world.launch"
-    />
-
-  <param name="robot_description" command="$(find xacro)/xacro.py --inorder '$(find dualarm_description)/urdf/right_sim.xacro'" />
-
-  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen" args="-urdf -model dualarm -param robot_description"/>
-</launch>

@@ -1,7 +1,7 @@
-<library path="lib/libdualarm_controller">
+<library path="lib/libhyuspa_controller">
 
-    <class name="dualarm_controller/ComputedTorque_Control_CLIK"
-           type="dualarm_controller::ComputedTorque_Control_CLIK"
+    <class name="hyuspa_controller/ComputedTorque_Control_CLIK"
+           type="hyuspa_controller::ComputedTorque_Control_CLIK"
            base_class_type="controller_interface::ControllerBase">
         <description>
             Computed Torque Controller with Closed Loop Inverse Kinematics
