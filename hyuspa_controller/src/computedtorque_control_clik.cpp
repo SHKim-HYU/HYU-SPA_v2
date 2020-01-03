@@ -317,13 +317,13 @@ namespace  hyuspa_controller
             Eigen::Map<VectorXd>(q, n_joints_) = q_.data;
             Eigen::Map<VectorXd>(qdot, n_joints_) = qdot_.data;
 
-            ROS_INFO("Controller start");
+            //ROS_INFO("Controller start");
             cManipulator->pKin->Unflag_isInfoupdate();
-            ROS_INFO("PKIN info");
+            //ROS_INFO("PKIN info");
             cManipulator->pKin->HTransMatrix(q);
-            ROS_INFO("PKIN HTransMatrix");
+            //ROS_INFO("PKIN HTransMatrix");
             cManipulator->pDyn->Prepare_Dynamics(q,qdot);
-            ROS_INFO("PDyn Prepare");
+            //ROS_INFO("PDyn Prepare");
 
 
             //Control->InvDynController(q, qdot, dq, dqdot, dqddot, torque, dt);

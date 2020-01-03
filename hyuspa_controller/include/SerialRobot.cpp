@@ -21,6 +21,9 @@ robot::~robot() {
 
 void robot::robot_update_R(void)
 {
+    pDyn = new Liedynamics;
+    pKin = new PoEKinematics;
+
 	w[0] << 0, 1, 0;
 	w[1] << 1, 0, 0;
 	w[2] << 0, 1, 0;
@@ -101,8 +104,8 @@ void robot::robot_update_R(void)
 */
     for(int i=0; i<ROBOT_DOF; ++i)
     {
-    	Liedynamics::UpdateDynamicInfo(inertia[i] , mass[i], i+1);
-    	PoEKinematics::UpdateKinematicInfo_R(w[i], p[i], L[i], i+1);
+    	pDyn->UpdateDynamicInfo(inertia[i] , mass[i], i+1);
+    	pKin->UpdateKinematicInfo_R(w[i], p[i], L[i], i+1);
     }
 
 }
