@@ -192,7 +192,7 @@ namespace  hyuspa_controller
             }
 
             // 4.2 kdl chain
-            std::string root_name, tip_name1, tip_name2;
+            std::string root_name, tip_name1;
             if (!n.getParam("root_link", root_name))
             {
                 ROS_ERROR("Could not find root link name");
@@ -203,28 +203,10 @@ namespace  hyuspa_controller
                 ROS_ERROR("Could not find tip link name");
                 return false;
             }
-
-
             if (!kdl_tree_.getChain(root_name, tip_name1, kdl_chain_))
             {
                 ROS_ERROR_STREAM("Failed to get KDL chain from tree: ");
                 ROS_ERROR_STREAM("  " << root_name << " --> " << tip_name1);
-                ROS_ERROR_STREAM("  Tree has " << kdl_tree_.getNrOfJoints() << " joints");
-                ROS_ERROR_STREAM("  Tree has " << kdl_tree_.getNrOfSegments() << " segments");
-                ROS_ERROR_STREAM("  The segments are:");
-
-                KDL::SegmentMap segment_map = kdl_tree_.getSegments();
-                KDL::SegmentMap::iterator it;
-
-                for (it = segment_map.begin(); it != segment_map.end(); it++)
-                    ROS_ERROR_STREAM("    " << (*it).first);
-
-                return false;
-            }
-            else if(!kdl_tree_.getChain(root_name, tip_name2, kdl_chain2_))
-            {
-                ROS_ERROR_STREAM("Failed to get KDL chain from tree: ");
-                ROS_ERROR_STREAM("  " << root_name << " --> " << tip_name2);
                 ROS_ERROR_STREAM("  Tree has " << kdl_tree_.getNrOfJoints() << " joints");
                 ROS_ERROR_STREAM("  Tree has " << kdl_tree_.getNrOfSegments() << " segments");
                 ROS_ERROR_STREAM("  The segments are:");
@@ -313,6 +295,7 @@ namespace  hyuspa_controller
             {
                 Control->SetPIDGain(Kp_(i), Kd_(i), Ki_(i), i);
             }
+            //ROS_INFO("Starting is done");
         }
 
         void update(const ros::Time &time, const ros::Duration &period) override
@@ -334,9 +317,13 @@ namespace  hyuspa_controller
             Eigen::Map<VectorXd>(q, n_joints_) = q_.data;
             Eigen::Map<VectorXd>(qdot, n_joints_) = qdot_.data;
 
+            ROS_INFO("Controller start");
             cManipulator->pKin->Unflag_isInfoupdate();
+            ROS_INFO("PKIN info");
             cManipulator->pKin->HTransMatrix(q);
+            ROS_INFO("PKIN HTransMatrix");
             cManipulator->pDyn->Prepare_Dynamics(q,qdot);
+            ROS_INFO("PDyn Prepare");
 
 
             //Control->InvDynController(q, qdot, dq, dqdot, dqddot, torque, dt);
@@ -400,8 +387,7 @@ namespace  hyuspa_controller
             }
             count++;
         }
-        robot *cManipulator;
-        HYUControl::Controller *Control;
+
 
     private:
         // others
@@ -482,7 +468,8 @@ namespace  hyuspa_controller
         std_msgs::Float64MultiArray msg_xd_, msg_x_, msg_ex_;
         std_msgs::Float64MultiArray msg_SaveData_;
 
-
+        robot *cManipulator;
+        HYUControl::Controller *Control;
 
 
     };

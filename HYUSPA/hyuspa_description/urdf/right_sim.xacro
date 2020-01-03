@@ -14,10 +14,15 @@
 
   <joint name="world_base" type="fixed">
     <parent link="world"/>
+    <child link="Arm_Link_base"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="Arm_Link_base"/>
+  <joint name="Arm_Joint_base_joint" type="fixed">
+    <parent link="Arm_Link_base"/>
     <child link="Arm_Link_00"/>
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
-  
   <m_link_mesh name="${link_00_name}"
               origin_rpy="0 0 0" origin_xyz="4.5871E-06 -0.01113 0.72794"
               colvis_rpy="0 0 0" colvis_xyz="0 0 0"
