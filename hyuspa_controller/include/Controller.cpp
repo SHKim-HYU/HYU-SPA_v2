@@ -44,6 +44,7 @@ Controller::Controller(int JointNum)
     e_old.setZero();
     eTask.resize(6);
     edotTask.resize(6);
+    q_flag=0;
 
 
 
@@ -217,10 +218,10 @@ void Controller::Gravity(double * q, double * q_dot, double * toq)
         //Kd << 4.0984,			4.1237,		2.0619,		2.5641,		0.691;
         //Kp << 11.7931,		11.5279,	5.764,		16.2564,		3.1946;
         //Kd << 2*sqrt(Kp(0)), 2*sqrt(Kp(1)), 2*sqrt(Kp(2)), 2*sqrt(Kp(3)), 2*sqrt(Kp(4));
-        Kp << 100,        100,	    75,      100,      60;
+        Kp << 150,        150,	    120,      150,  100;
         Ki << 200,        200,      150,     200,   120;
-        Kd << 0.03375482 *2* Kp(0), 2*0.034499895*Kp(1), 2*0.0345007*Kp(2), 2*0.015999985*Kp(3), 2*0.03599971*Kp(4);
-
+       // Kd << 0.03375482 *2* Kp(0), 2*0.034499895*Kp(1), 2*0.0345007*Kp(2), 2*0.015999985*Kp(3), 2*0.03599971*Kp(4);
+        Kd << 2*sqrt(Kp(0)), 2*sqrt(Kp(1)), 2*sqrt(Kp(2)), 2*sqrt(Kp(3)), 2*sqrt(Kp(4));
         G.resize(ROBOT_DOF,1);
         G=pManipulator->pDyn->G_Matrix();
         M.resize(ROBOT_DOF,ROBOT_DOF);
@@ -234,21 +235,21 @@ void Controller::Gravity(double * q, double * q_dot, double * toq)
         //dq = Map<VectorXd>(dq_, this->m_Jnum);
         //dqdot = Map<VectorXd>(dq_dot, this->m_Jnum);
         //dqddot = Map<VectorXd>(dq_ddot, this->m_Jnum);
-        dq=dq_;
-        dqdot=dq_dot;
-        dqddot=dq_ddot;
+        qd=dq_;
+        qd_dot=dq_dot;
+        qd_ddot=dq_ddot;
 
 
         Jointd u, dq_dd;
 
-        e = dq - q;
-        e_dev= dqdot - qdot;
+        e = qd - q;
+        e_dev= qd_dot - qdot;
         e_int = e_old+e*0.001;
 
         e_old=e_int;
 
 
-        u0=dqddot + Kd.cwiseProduct(e_dev) + Kp.cwiseProduct(e) +Ki.cwiseProduct(e_int);
+        u0=qd_ddot + Kd.cwiseProduct(e_dev) + Kp.cwiseProduct(e);// +Ki.cwiseProduct(e_int);
         u= M * u0 + C * qdot + G;
 
 
@@ -287,6 +288,7 @@ void Controller::Gravity(double * q, double * q_dot, double * toq)
     void Controller::ComputedTorque(double *q_, double *q_dot, Matrix<double,5,1>& dq_, Matrix<double,5,1>& dq_dot, Matrix<double,5,1>& dq_ddot, double * toq)
     {
         Kp << 20,        20,	    10,      20,      10;
+        //Ki << 100,        100,      75,     000,   60;
         Kd << 0.03375482 * Kp(0), 0.034499895*Kp(1), 0.0345007*Kp(2), 0.015999985*Kp(3), 0.03599971*Kp(4);
 
         G.resize(ROBOT_DOF,1);
@@ -302,18 +304,21 @@ void Controller::Gravity(double * q, double * q_dot, double * toq)
         //dq = Map<VectorXd>(dq_, this->m_Jnum);
         //dqdot = Map<VectorXd>(dq_dot, this->m_Jnum);
         //dqddot = Map<VectorXd>(dq_ddot, this->m_Jnum);
-        dq=dq_;
-        dqdot=dq_dot;
-        dqddot=dq_ddot;
+        qd=dq_;
+        qd_dot=dq_dot;
+        qd_ddot=dq_ddot;
 
 
         Jointd u, uff, dq_dd;
 
-        e = dq - q;
-        e_dev= dqdot - qdot;
+        e = qd - q;
+        e_dev= qd_dot - qdot;
+        e_int = e_old+e*0.001;
 
-        uff = M * dqddot + C * dqdot + G;
-        u0=Kd.cwiseProduct(e_dev) + Kp.cwiseProduct(e);
+        e_old=e_int;
+
+        uff = M * qd_ddot + C * qd_dot + G;
+        u0=Kd.cwiseProduct(e_dev) + Kp.cwiseProduct(e);//+Ki.cwiseProduct(e_int);
         u= uff +u0;
 
 
@@ -628,9 +633,34 @@ void Controller::CLIKController(double * _q, double * _qdot, double * _dq, doubl
 
 }
 
-void Controller::CLIKController_2nd(double *_q, double *_qdot, Matrix<double,5,1>& dq, Matrix<double,5,1>& dq_dot, Matrix<double,5,1>& dq_ddot)
+void Controller::CLIKController_2nd(double *_q, double *_qdot, Matrix<double,5,1>& dq, Matrix<double,5,1>& dq_dot, Matrix<double,5,1>& dq_ddot, Vector3d& xd, Vector3d& xd_dot, Vector3d& xd_ddot, double _dt)
 {
+    q.resize(this->m_Jnum);
+    q=Map<VectorXd>(_q,this->m_Jnum);
+    qdot.resize(this->m_Jnum);
+    qdot=Map<VectorXd>(_qdot,this->m_Jnum);
 
+    l_Jaco=pManipulator->pKin->LinearJacobian();
+    l_Jaco_dot=pManipulator->pKin->Jacobian_l_dot();
+    DPI_l_jaco=pManipulator->pKin->DPI(l_Jaco);
+
+    x=pManipulator->pKin->ForwardKinematics();
+    x_dot=l_Jaco * qdot;
+
+    if(q_flag==0)
+    {
+        qd_dot_old = qdot;
+        qd_old = q;
+        q_flag=1;
+    }
+    dq_ddot= DPI_l_jaco*(xd_ddot - l_Jaco_dot*qdot +250000*(xd-x)+1000*(xd_dot-x_dot));
+    dq_dot = qd_dot_old + dq_ddot*_dt;
+    dq = qd_old + dq_dot*_dt;
+    if(q_flag==1)
+    {
+        qd_dot_old=dq_dot;
+        qd_old=dq;
+    }
 }
 
 Jointd Controller::return_u0(void)

@@ -51,7 +51,7 @@ public:
 	void Inverse_Dynamics_Control(double *q_, double *q_dot, Matrix<double,5,1>& dq_, Matrix<double,5,1>& dq_dot, Matrix<double,5,1>& dq_ddot, double * toq);
     void ComputedTorque(double *q_, double *q_dot, Matrix<double,5,1>& dq_, Matrix<double,5,1>& dq_dot, Matrix<double,5,1>& dq_ddot, double * toq);
     void CLIKController( double *_q, double *_qdot, double *_dq, double *_dqdot, const VectorXd *_dx, const VectorXd *_dxdot, const VectorXd &_dqdotNull, double *p_Toq, double &_dt );
-    void CLIKController_2nd(double *_q, double *_qdot, Matrix<double,5,1>& dq, Matrix<double,5,1>& dq_dot, Matrix<double,5,1>& dq_ddot);
+    void CLIKController_2nd(double *_q, double *_qdot, Matrix<double,5,1>& dq, Matrix<double,5,1>& dq_dot, Matrix<double,5,1>& dq_ddot, Vector3d& xd, Vector3d& xd_dot, Vector3d& xd_ddot, double _dt);
 
 	void TorqueOutput(double *p_toq, int maxtoq, int *p_dir);
 	//void TorqueOutput(double *p_toq , int maxtoq);
@@ -74,8 +74,9 @@ private:
 	Matrix<double,ROBOT_DOF,1> e_int;
 	Matrix<double,ROBOT_DOF,1> e_old;
 
-	VectorXd q, dq, qdot, dqdot, dqddot;
-    VectorXd eTask, edotTask;
+	VectorXd q, qdot, qd, qd_dot, qd_ddot, qd_old, qd_dot_old;
+    Vector3d x, x_dot;
+	VectorXd eTask, edotTask;
     MatrixXd edotTmp;
 
     VectorXd ToqOut;
@@ -84,12 +85,16 @@ private:
     MatrixXd G,Gx,M,C;
     MatrixXd _a_jaco, _pinv_jaco,_jaco_dot;
 
+    LinJaco l_Jaco, l_Jaco_dot;
+    PinvLJaco DPI_l_jaco;
+
     MatrixXd LinearJacobian;
 
 
     Jointd u0;
     VectorXd ax;
 	int m_Jnum;
+	int q_flag;
 
     double m_KpBase, m_KdBase, m_KiBase;
 
