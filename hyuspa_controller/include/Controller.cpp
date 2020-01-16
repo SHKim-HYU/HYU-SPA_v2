@@ -46,6 +46,7 @@ Controller::Controller(int JointNum)
     edotTask.resize(6);
 
 
+
 }
 Controller::Controller(robot *pManipulator, int JointNum)
 {
@@ -217,7 +218,8 @@ void Controller::Gravity(double * q, double * q_dot, double * toq)
         //Kp << 11.7931,		11.5279,	5.764,		16.2564,		3.1946;
         //Kd << 2*sqrt(Kp(0)), 2*sqrt(Kp(1)), 2*sqrt(Kp(2)), 2*sqrt(Kp(3)), 2*sqrt(Kp(4));
         Kp << 100,        100,	    75,      100,      60;
-        Kd << 0.03375482 * Kp(0), 0.034499895*Kp(1), 0.0345007*Kp(2), 0.015999985*Kp(3), 0.03599971*Kp(4);
+        Ki << 200,        200,      150,     200,   120;
+        Kd << 0.03375482 *2* Kp(0), 2*0.034499895*Kp(1), 2*0.0345007*Kp(2), 2*0.015999985*Kp(3), 2*0.03599971*Kp(4);
 
         G.resize(ROBOT_DOF,1);
         G=pManipulator->pDyn->G_Matrix();
@@ -241,8 +243,12 @@ void Controller::Gravity(double * q, double * q_dot, double * toq)
 
         e = dq - q;
         e_dev= dqdot - qdot;
+        e_int = e_old+e*0.001;
 
-        u0=dqddot + Kd.cwiseProduct(e_dev) + Kp.cwiseProduct(e);
+        e_old=e_int;
+
+
+        u0=dqddot + Kd.cwiseProduct(e_dev) + Kp.cwiseProduct(e) +Ki.cwiseProduct(e_int);
         u= M * u0 + C * qdot + G;
 
 

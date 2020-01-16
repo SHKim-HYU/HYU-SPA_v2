@@ -375,7 +375,7 @@ namespace  hyuspa_controller
             id_solver_->JntToCoriolis(q_, qdot_, C_);
             id_solver_->JntToGravity(q_, G_); // output은 머지? , id_solver는 어디에서?
             /////////////Trajectory for Joint Space//////////////
- /*           if(Motion==1 &&TrajFlag_j(0)==0)
+            if(Motion==1 &&TrajFlag_j(0)==0)
             {
                 traj_q[0]=0.01; traj_q[1]=-1.57; traj_q[2]= 0.01; traj_q[3]=1.57; traj_q[4]=0.01;
                 Motion++;
@@ -421,9 +421,9 @@ namespace  hyuspa_controller
                 }
 
             }
-*/            ////////////////////////
+            ////////////////////////
 
-
+/*
            if(t<=3)
            {
                /////////////Trajectory for Joint Space//////////////
@@ -580,7 +580,7 @@ namespace  hyuspa_controller
                     }
 
                 }
-
+*/
                 /////////////Trajectory for Task Space//////////////
 /*              if(Motion==1 &&TrajFlag_td(0)==0)
                 {
@@ -641,16 +641,15 @@ namespace  hyuspa_controller
 */
                 ///////////////////
                 ///// qd CLIK
+    /*            if(q_flag==0)
+                {
+                    qd_dot_old = Map<VectorXd>(qdot, 5);
+                    qd_old = Map<VectorXd>(q, 5);
+                }
                 qd_ddot=DPI_jaco*(xdddot - l_jaco_dot*qdot_.data+250000*(xd-x)+1000*(xddot-xdot));
                 qd_dot = qd_dot_old + qd_ddot*dt;
                 qd = qd_old + qd_dot*dt;
-
-                if(q_flag==0)
-                {
-                    //qd_dot_old = Map<VectorXd>(qdot, 5);
-                    //qd_old = Map<VectorXd>(q, 5);
-                }
-                else
+                if(q_flag==1)
                 {
                     qd_dot_old=qd_dot;
                     qd_old=qd;
@@ -663,7 +662,7 @@ namespace  hyuspa_controller
                    dq[i]=qd(i);
                    dqdot[i]=qd_dot(i);
                }
-
+*/
             cManipulator->pDyn->Prepare_Dynamics(q,qdot);
 
             //Control->ComputedTorque(q, qdot, qd, qd_dot, qd_ddot, torque);

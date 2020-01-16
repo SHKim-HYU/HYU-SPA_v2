@@ -86,6 +86,7 @@ private:
 
     MatrixXd LinearJacobian;
 
+
     Jointd u0;
     VectorXd ax;
 	int m_Jnum;
