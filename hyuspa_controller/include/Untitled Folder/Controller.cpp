@@ -197,7 +197,6 @@ void Controller::InvDynController( double *p_q, double *p_qdot, double *p_dq, do
 
 	Map<VectorXd>(p_Toq, this->m_Jnum) = ToqOut;
 	return;
-
 }
 
 void Controller::CLIKTaskController( double *_q, double *_qdot, double *_dq, double *_dqdot, const VectorXd *_dx, const VectorXd *_dxdot, const VectorXd &_dqdotNull, double *p_Toq, double &_dt )
@@ -224,7 +223,7 @@ void Controller::CLIKTaskController( double *_q, double *_qdot, double *_dq, dou
 		LogSO3(eSE3.block(0,0,3,3), omega, theta);
 
 		eTask.segment(6*i,3) = omega*theta;
-		eTask.segment(6*i+3,3) = eSE3.block(0,3,3,1);
+		eTask.segment(6*i+3,3) = eSE3.block(0,3,3,1); //Position of T
 
 		LieOperator::invExpdExpInvMapMatrix(omega, theta, dexp);
 		edotTmp.block(6*i,6*i,6,6).noalias() += -dexp*LieOperator::AdjointMatrix(LieOperator::inverse_SE3(eSE3));

@@ -32,9 +32,10 @@
 #define _USE_MATH_DEFINES
 
 #include "SerialRobot.h"
+#include "Trajectory.h"
 
-#define R2D M_PI/180.0
-#define D2R 180.0/M_PI
+#define R2D 180/M_PI
+#define D2R M_PI/180
 #define num_taskspace 6
 #define SaveDataMax 97
 
@@ -223,6 +224,14 @@ namespace  hyuspa_controller
             {
                 ROS_INFO("Got kdl chain");
             }
+            gravity_ = KDL::Vector::Zero();
+            gravity_(2) = -9.81; // 0: x-axis 1: y-axis 2: z-axis
+
+            M_.resize(kdl_chain_.getNrOfJoints());
+            C_.resize(kdl_chain_.getNrOfJoints());
+            G_.resize(kdl_chain_.getNrOfJoints());
+
+            id_solver_.reset(new KDL::ChainDynParam(kdl_chain_, gravity_));
 
             jnt_to_jac_solver_.reset(new KDL::ChainJntToJacSolver(kdl_chain_));
             fk_pos_solver_.reset(new KDL::ChainFkSolverPos_recursive(kdl_chain_));
@@ -241,8 +250,15 @@ namespace  hyuspa_controller
             qdot_.data = Eigen::VectorXd::Zero(n_joints_);
 
             q_chain[0].data = Eigen::VectorXd::Zero(kdl_chain_.getNrOfJoints());
-            q_chain[1].data = Eigen::VectorXd::Zero(kdl_chain_.getNrOfJoints());
 
+            J_.resize(kdl_chain_.getNrOfJoints());
+
+            TrajFlag_j.resize(n_joints_);
+            TrajFlag_j.setZero();
+            TrajFlag_t.resize(n_joints_);
+            TrajFlag_t.setZero();
+            TrajFlag_td.resize(num_taskspace);
+            TrajFlag_td.setZero();
 
             // ********* 6. ROS 명령어 *********
             // 6.1 publisher
@@ -286,15 +302,21 @@ namespace  hyuspa_controller
         {
             t = 0.0;
             ROS_INFO("Starting Computed Torque Controller with Closed-Loop Inverse Kinematics");
-
+            //xd={0.048723,-0.30684,1.23653};
             cManipulator = new robot;
-            Control = new HYUControl::Controller(n_joints_);
-
+            Control = new HYUControl::Controller(cManipulator,n_joints_);
+            traj5th_joint = new hyuCtrl::Trajectory();
+            traj5th_task = new hyuCtrl::Trajectory();
+            qd.setZero();
+            qd_dot.setZero();
+            qd_old.setZero();
+            q_flag=0;
             cManipulator->robot_update_R();
             for(int i=0; i<n_joints_; i++)
             {
                 Control->SetPIDGain(Kp_(i), Kd_(i), Ki_(i), i);
             }
+
             //ROS_INFO("Starting is done");
         }
 
@@ -322,16 +344,337 @@ namespace  hyuspa_controller
             //ROS_INFO("PKIN info");
             cManipulator->pKin->HTransMatrix(q);
             //ROS_INFO("PKIN HTransMatrix");
-            cManipulator->pDyn->Prepare_Dynamics(q,qdot);
+            rpy = cManipulator->pKin->GetEulerAngle();
+            quat = cManipulator->pKin->GetQuaternion();
+            //cManipulator->pDyn->Prepare_Dynamics(q,qdot);////////////////////////
             //ROS_INFO("PDyn Prepare");
+
+            b_jaco=cManipulator->pKin->BodyJacobian();
+            s_jaco=cManipulator->pKin->SpaceJacobian();
+            l_jaco=cManipulator->pKin->LinearJacobian();
+            l_jaco_dot=cManipulator->pKin->Jacobian_l_dot();
+            a_jaco=cManipulator->pKin->AnalyticJacobian();
+            DPI_jaco=cManipulator->pKin->DPI(l_jaco);
+            jnt_to_jac_solver_->JntToJac(q_, J_);
+            fk_pos_solver_->JntToCart(q_, x_);
+
 
 
             //Control->InvDynController(q, qdot, dq, dqdot, dqddot, torque, dt);
+            //torque[0]=-5.0;torque[1]=3.0;torque[2]=0.0;torque[3]=2.0;torque[4]=0.0;
 
+            xdot=l_jaco*qdot_.data;
+            x=cManipulator->pKin->ForwardKinematics();
+
+            xdota=a_jaco*qdot_.data;
+            ROT=cManipulator->pKin->Rot();
+            xa.block<3,1>(0,0)=cManipulator->pKin->so3ToVec(ROT);
+            xa.block<3,1>(3,0)=x;
+
+            id_solver_->JntToMass(q_, M_);
+            id_solver_->JntToCoriolis(q_, qdot_, C_);
+            id_solver_->JntToGravity(q_, G_); // output은 머지? , id_solver는 어디에서?
+            /////////////Trajectory for Joint Space//////////////
+ /*           if(Motion==1 &&TrajFlag_j(0)==0)
+            {
+                traj_q[0]=0.01; traj_q[1]=-1.57; traj_q[2]= 0.01; traj_q[3]=1.57; traj_q[4]=0.01;
+                Motion++;
+                for(int i=0;i<n_joints_;i++)
+                {
+                    TrajFlag_j(i)=1;
+                }
+            }
+            else if(Motion==2 &&TrajFlag_j(0)==0)
+            {
+                traj_q[0]=0.732177; traj_q[1]=-1.231181; traj_q[2]= -1.284267; traj_q[3] = 1.05148; traj_q[4] = -0.407245;
+                Motion++;
+                for(int i=0;i<n_joints_;i++)
+                {
+                    TrajFlag_j(i)=1;
+                }
+            }
+            else if(Motion==3 &&TrajFlag_j(0)==0)
+            {
+                traj_q[0]=0.741427; traj_q[1]=-1.961923; traj_q[2]= -1.348277; traj_q[3] = 0.493244; traj_q[4] = -0.407213;
+                Motion=1;
+                for(int i=0;i<n_joints_;i++)
+                {
+                    TrajFlag_j(i)=1;
+                }
+            }
+
+            for (int i = 0; i < n_joints_; i++) {
+
+                if (TrajFlag_j(i)==2)
+                {
+                    traj5th_joint->Polynomial5th(i, t, &TrajFlag_j(i), res_tra);
+                    qd[i] = res_tra[0];
+                    qd_dot[i] = res_tra[1];
+                    qd_ddot[i]=res_tra[2];
+                }
+                else if(TrajFlag_j(i)==1) {
+                    traj5th_joint->SetPolynomial5th(i, q[i], traj_q(i), t, 2.0, res_tra);
+                    qd[i] = res_tra[0];
+                    qd_dot[i] = res_tra[1];
+                    qd_ddot[i]=res_tra[2];
+                    TrajFlag_j(i)=2;
+                }
+
+            }
+*/            ////////////////////////
+
+
+           if(t<=3)
+           {
+               /////////////Trajectory for Joint Space//////////////
+               if(TrajFlag_j[0]==0)
+               {
+                   traj_q[0]=0.732177; traj_q[1]=-1.431181; traj_q[2]= -1.084267; traj_q[3]=1.05148; traj_q[4]=-0.407245;
+                   //traj_q[0]=0.0; traj_q[1]=-1.57; traj_q[2]= 0.0; traj_q[3]=1.57; traj_q[4]=0.0;
+                   for(int i=0;i<n_joints_;i++)
+                   {
+                       TrajFlag_j(i)=1;
+                   }
+               }
+
+                for (int i = 0; i < n_joints_; i++) {
+
+                    if (TrajFlag_j(i)==2)
+                    {
+                        traj5th_joint->Polynomial5th(i, t, &TrajFlag_j(i), res_tra);
+                        qd[i] = res_tra[0];
+                        qd_dot[i] = res_tra[1];
+                        qd_ddot[i]=res_tra[2];
+                        if(TrajFlag_j[i]==0)
+                            TrajFlag_j[i]=3;
+                    }
+                    else if(TrajFlag_j(i)==1) {
+                        traj5th_joint->SetPolynomial5th(i, q[i], traj_q(i), t, 2.0, res_tra);
+                        qd[i] = res_tra[0];
+                        qd_dot[i] = res_tra[1];
+                        qd_ddot[i]=res_tra[2];
+                        TrajFlag_j(i)=2;
+                    }
+
+                }
+
+               ////////////////////////
+            }
+            else
+            {
+                /////////////Trajectory for Task Space//////////////
+                if(Motion==1 &&TrajFlag_t(0)==0)
+                {
+                    traj_x[0]=0.308723; traj_x[1]=-0.30684; traj_x[2]= 1.23653;
+                    Motion++;
+                    for(int i=0;i<3;i++)
+                    {
+                        TrajFlag_t(i)=1;
+                    }
+                }
+                else if(Motion==2 &&TrajFlag_t(0)==0)
+                {
+                    traj_x[0]=0.308723; traj_x[1]=-0.20684; traj_x[2]= 1.23653;
+                    Motion++;
+                    for(int i=0;i<3;i++)
+                    {
+                        TrajFlag_t(i)=1;
+                    }
+                }
+                else if(Motion==3 &&TrajFlag_t(0)==0)
+                {
+                    //traj_x[0]=0.148723; traj_x[1]=-0.30684; traj_x[2]= 1.23653;
+                    traj_x[0]=0.308723; traj_x[1]=-0.10684; traj_x[2]= 1.23653;
+                    Motion++;
+                    for(int i=0;i<3;i++)
+                    {
+                        TrajFlag_t(i)=1;
+                    }
+                }
+                else if(Motion==4 &&TrajFlag_t(0)==0)
+                {
+                    //traj_x[0]=0.148723; traj_x[1]=-0.30684; traj_x[2]= 1.33653;
+                    traj_x[0]=0.308723; traj_x[1]=-0.030684; traj_x[2]= 1.23653;
+                    Motion++;
+                    for(int i=0;i<3;i++)
+                    {
+                        TrajFlag_t(i)=1;
+                    }
+                }
+                else if(Motion==5 &&TrajFlag_t(0)==0)
+                {
+                    //traj_x[0]=0.108723; traj_x[1]=-0.70684; traj_x[2]= 1.43653;
+                    traj_x[0]=0.308723; traj_x[1]=-0.20684; traj_x[2]= 1.23653;
+                    Motion++;
+                    for(int i=0;i<3;i++)
+                    {
+                        TrajFlag_t(i)=1;
+                    }
+                }
+                else if(Motion==6 &&TrajFlag_t(0)==0)
+                {
+                    //traj_x[0]=0.508723; traj_x[1]=-0.60684; traj_x[2]= 1.567653;
+                    traj_x[0]=0.308723; traj_x[1]=-0.40684; traj_x[2]= 1.23653;
+                    Motion++;
+                    for(int i=0;i<3;i++)
+                    {
+                        TrajFlag_t(i)=1;
+                    }
+                }
+                else if(Motion==7 &&TrajFlag_t(0)==0)
+                {
+                    //traj_x[0]=0.508723; traj_x[1]=-0.60684; traj_x[2]= 1.567653;
+                    traj_x[0]=0.308723; traj_x[1]=-0.40684; traj_x[2]= 1.33653;
+                    Motion++;
+                    for(int i=0;i<3;i++)
+                    {
+                        TrajFlag_t(i)=1;
+                    }
+                }
+                else if(Motion==8 &&TrajFlag_t(0)==0)
+                {
+                    //traj_x[0]=0.508723; traj_x[1]=-0.60684; traj_x[2]= 1.567653;
+                    traj_x[0]=0.308723; traj_x[1]=-0.40684; traj_x[2]= 1.43653;
+                    Motion++;
+                    for(int i=0;i<3;i++)
+                    {
+                        TrajFlag_t(i)=1;
+                    }
+                }
+                else if(Motion==9 &&TrajFlag_t(0)==0)
+                {
+                    //traj_x[0]=0.508723; traj_x[1]=-0.60684; traj_x[2]= 1.567653;
+                    traj_x[0]=0.308723; traj_x[1]=-0.40684; traj_x[2]= 1.23653;
+                    Motion++;
+                    for(int i=0;i<3;i++)
+                    {
+                        TrajFlag_t(i)=1;
+                    }
+                }
+                else if(Motion==10 &&TrajFlag_t(0)==0)
+                {
+                    //traj_x[0]=0.508723; traj_x[1]=-0.60684; traj_x[2]= 1.567653;
+                    traj_x[0]=0.308723; traj_x[1]=-0.20684; traj_x[2]= 1.43653;
+                    Motion=1;
+                    for(int i=0;i<3;i++)
+                    {
+                        TrajFlag_t(i)=1;
+                    }
+                }
+
+                for (int i = 0; i < 3; i++) {
+
+                    if (TrajFlag_t(i)==2)
+                    {
+                        traj5th_task->Polynomial5th(i, t, &TrajFlag_t(i), res_tra);
+                        xd[i] = res_tra[0];
+                        xddot[i]=res_tra[1];
+                        xdddot[i]=res_tra[2];
+                    }
+                    else {
+                        traj5th_task->SetPolynomial5th(i, x[i], traj_x(i), t, 5.0, res_tra);
+                        xd[i] = res_tra[0];
+                        xddot[i]=res_tra[1];
+                        xdddot[i]=res_tra[2];
+                        TrajFlag_t(i)=2;
+                    }
+
+                }
+
+                /////////////Trajectory for Task Space//////////////
+/*              if(Motion==1 &&TrajFlag_td(0)==0)
+                {
+                    Matrix3d Rd;
+                    Rd<<0.650,-0.43,-0.6268,0.735,0.144,0.6625,0.1941,-0.8918,0.4083;
+                    ROTD=cManipulator->pKin->MatrixLog3(Rd);
+                    traj_xd[3]=0.2805; traj_xd[4]=-0.2179; traj_xd[5]= 1.31607;
+                    traj_xd.block<3,1>(0,0)=cManipulator->pKin->so3ToVec(ROTD);
+                    Motion++;
+                    for(int i=0;i<6;i++)
+                    {
+                        TrajFlag_td(i)=1;
+                    }
+                }
+               if(Motion==2 &&TrajFlag_td(0)==0)
+               {
+                   Matrix3d Rd;
+                   Rd<<0.75176,-0.446541,-0.485239,0.444412,-0.200569,0.873081,-0.48719,-0.871994,0.0476685;
+                   ROTD=cManipulator->pKin->MatrixLog3(Rd);
+                   traj_xd[3]=0.307105; traj_xd[4]=-0.412607; traj_xd[5]= 1.32142;
+                   traj_xd.block<3,1>(0,0)=cManipulator->pKin->so3ToVec(ROTD);
+                   Motion=1;
+                   for(int i=0;i<6;i++)
+                   {
+                       TrajFlag_td(i)=1;
+                   }
+               }
+
+                for (int i = 0; i < 6; i++) {
+
+                    if (TrajFlag_td(i)==2)
+                    {
+                        traj5th_task->Polynomial5th(i, t, &TrajFlag_td(i), res_trad);
+                        xda[i] = res_trad[0];
+                    }
+                    else if(TrajFlag_td(i)==1){
+                        traj5th_task->SetPolynomial5th(i, xa[i], traj_xd(i), t, 2.0, res_trad);
+                        xda[i] = res_trad[0];
+                        TrajFlag_td(i)=2;
+                    }
+
+                }
+*/
+                ////////////////////////
+                // CLIK Algorithm
+                /////general CLIK
+/*                qd_dot=DPI_jaco*(xddot + K_regulation_*(xd-x));
+                //qd_dot= DPI_jaco*(K_regulation_*(xda-xa));
+                qd = qd_old + qd_dot*dt;
+
+                if(q_flag==0)
+                    qd_old=Map<VectorXd>(q,5);
+                else
+                {
+                    qd_old=qd;
+                    q_flag=1;
+                }
+*/
+                ///////////////////
+                ///// qd CLIK
+                qd_ddot=DPI_jaco*(xdddot - l_jaco_dot*qdot_.data+250000*(xd-x)+1000*(xddot-xdot));
+                qd_dot = qd_dot_old + qd_ddot*dt;
+                qd = qd_old + qd_dot*dt;
+
+                if(q_flag==0)
+                {
+                    //qd_dot_old = Map<VectorXd>(qdot, 5);
+                    //qd_old = Map<VectorXd>(q, 5);
+                }
+                else
+                {
+                    qd_dot_old=qd_dot;
+                    qd_old=qd;
+                    q_flag=1;
+                }
+                ////////////////////
+            }
+               for(int i=0;i<n_joints_;i++)
+               {
+                   dq[i]=qd(i);
+                   dqdot[i]=qd_dot(i);
+               }
+
+            cManipulator->pDyn->Prepare_Dynamics(q,qdot);
+
+            //Control->ComputedTorque(q, qdot, qd, qd_dot, qd_ddot, torque);
+            //Control->PD_Gravity(q, qdot, qd, qd_dot, torque);
+            Control->Inverse_Dynamics_Control(q, qdot, qd, qd_dot, qd_ddot, torque);
+            //Control->Gravity(q,qdot,torque);
+            //cManipulator->pDyn->Mdot_Matrix(_Mdot);
             for (int i = 0; i < n_joints_; i++)
             {
-                //joints_[i].setCommand(torque[i]);
-                joints_[i].setCommand(0.0);
+                joints_[i].setCommand(torque[i]);
+                //joints_[i].setCommand(0.0);
             }
 
             // ********* 4. data 저장 *********
@@ -345,6 +688,8 @@ namespace  hyuspa_controller
         {
             delete Control;
             delete cManipulator;
+            delete traj5th_joint;
+            delete traj5th_task;
         }
 
         static void save_data()
@@ -376,18 +721,47 @@ namespace  hyuspa_controller
                 for(int i=0; i < n_joints_; i++)
                 {
                     printf("Joint ID:%d \t", i);
-                    printf("q: %0.3f, ", q_(i) * R2D);
-                    printf("dq: %0.3f, ", qd_(i) * R2D);
-                    printf("qdot: %0.3f, ", qdot_(i) * R2D);
-                    printf("dqdot: %0.3f, ", qd_dot_(i) * R2D);
+//                    printf("q: %0.3f, ", q_(i) * R2D);
+//                    printf("dq: %0.3f, ", qd_(i) * R2D);
+//                    printf("qdot: %0.3f, ", qdot_(i) * R2D);
+//                    printf("dqdot: %0.3f, ", qd_dot_(i) * R2D);
+                    printf("q: %0.3f, ", q_(i));
+                    printf("dq: %0.3f, ", qd(i));
+                    printf("qdot: %0.3f, ", qdot_(i));
+                    printf("dqdot: %0.3f, ", qd_dot(i));
+                    printf("torque: %0.3f", torque[i]);
                     printf("\n");
                 }
+                cout<<"FK"<<endl<<cManipulator->pKin->ForwardKinematics()<<endl;
+                cout<<"KDL FK"<<endl<<x_.p(0)<<endl<<x_.p(1)<<endl<<x_.p(2)<<endl;
+                cout<<"Euler Angle"<<endl<<rpy(0)<<", "<<rpy(1)<<", "<<rpy(2)<<endl;
+
+                //cout<<"Linear Velocity Jacobian"<<endl<<l_jaco<<endl;
+                JacobiSVD<MatrixXd> svd(l_jaco,ComputeThinU|ComputeThinV);
+                cout<<"w: "<<cManipulator->pKin->Manipulability(l_jaco)<<endl;
+                cout<<"k: "<<cManipulator->pKin->Condition_Number(l_jaco)<<endl;
+                cout<<"Singular Value"<<endl<<svd.singularValues()<<endl;
+                cout<<"Rotation Matrix"<<endl<<cManipulator->pKin->GetTMat(0,5)<<endl;
+                //cout<<"Xd: "<<xda<<"  X: "<<xa<<endl;
+                //cout<<"KDL Jacobian"<<endl<<J_.data.block<3,5>(0,0)<<endl;
+                cout<<"Analytic Jacobian"<<endl<<l_jaco<<endl;
+                //cout<<"KDL Jacobian"<<endl<<J_.data<<endl;
+                //cout<<"PI"<<endl<<cManipulator->pKin->Pinv(l_jaco)<<endl;
+                //cout<<"DPI"<<endl<<cManipulator->pKin->DPI(l_jaco)<<endl;
+                //cout<<"xdot"<<endl<<xdot<<endl;
+                //cout<<"KDL xdot"<<endl<<(J_.data*qdot_.data).block<3,1>(0,0)<<endl;
+                //cout<<"Gravity"<<endl<<cManipulator->pDyn->G_Matrix()<<endl;
+                //cout<<"Verify"<<endl<<_Mdot-2*cManipulator->pDyn->C_Matrix()<<endl;
+                cout<<"M"<<endl<<cManipulator->pDyn->M_Matrix()<<endl;
+                cout<<"KDL M"<<endl<<M_.data<<endl;
+                cout<<"C"<<endl<<cManipulator->pDyn->C_out()*qdot_.data<<endl;
+                cout<<"KDL C"<<endl<<C_.data<<endl;
+                //cout<<"Jaco_dot"<<endl<<cManipulator->pKin->Jacobian_l_dot()<<endl;
 
                 count = 0;
             }
             count++;
         }
-
 
     private:
         // others
@@ -405,7 +779,12 @@ namespace  hyuspa_controller
         // kdl
         KDL::Tree kdl_tree_;   // tree?
         KDL::Chain kdl_chain_; // chain?
-        KDL::Chain kdl_chain2_;
+
+        // kdl M,C,G
+        KDL::JntSpaceInertiaMatrix M_; // intertia matrix
+        KDL::JntArray C_;              // coriolis
+        KDL::JntArray G_;              // gravity torque vector
+        KDL::Vector gravity_;
 
         // kdl and Eigen Jacobian
         KDL::Jacobian J_;
@@ -418,6 +797,7 @@ namespace  hyuspa_controller
         boost::scoped_ptr<KDL::ChainFkSolverPos_recursive> fk_pos_solver_; //Solver to compute the forward kinematics (position)
         boost::scoped_ptr<KDL::ChainFkSolverVel_recursive> fk_vel_solver_; //Solver to compute the forward kinematics (velocity)
         boost::scoped_ptr<KDL::ChainJntToJacSolver> jnt_to_jac_solver_; //Solver to compute the jacobian
+        boost::scoped_ptr<KDL::ChainDynParam> id_solver_;               // Solver To compute the inverse dynamics
 
         // Joint Space State
         KDL::JntArray qd_, qd_dot_, qd_ddot_;
@@ -427,26 +807,60 @@ namespace  hyuspa_controller
         KDL::JntArray q_chain[2];
         KDL::JntArray qdot_chain[2];
 
+        MatrixXd q_dot;
+
         double q[5], qdot[5];
         double dq[5] = {0.0,};
         double dqdot[5] = {0.0,};
         double dqddot[5] = {0.0,};
         double torque[5] = {0.0,};
 
+        Jaco b_jaco;
+        Jaco s_jaco;
+        Jaco a_jaco;
+        LinJaco l_jaco;
+        LinJaco l_jaco_dot;
+        PinvLJaco DPI_jaco;
+
+        MatrixXd _Mdot;
+
         // Task Space State
         // ver. 01
+        Vector3d xd, xddot, xdddot;
+
+        Vector3d x;
+        Vector3d rpy;
+        Vector4d quat;
+        Matrix<double,5,1> qd;
+        Matrix<double,5,1> qd_old;
+        Matrix<double,5,1> qd_dot;
+        Matrix<double,5,1> qd_dot_old;
+        Matrix<double,5,1> qd_ddot;
         KDL::Frame xd_; // x.p: frame position(3x1), x.m: frame orientation (3x3)
         KDL::Frame x_;
         KDL::Twist ex_temp_;
+        int q_flag;
 
         // KDL::Twist xd_dot_, xd_ddot_;
         Eigen::Matrix<double, num_taskspace, 1> ex_;
         Eigen::Matrix<double, num_taskspace, 1> xd_dot_, xd_ddot_;
-        Eigen::Matrix<double, num_taskspace, 1> xdot_;
+        Eigen::Matrix<double, num_taskspace, 1> xdot_, xdota, xa, xda;
         Eigen::Matrix<double, num_taskspace, 1> ex_dot_, ex_int_;
-
+        Eigen::Matrix<double, 3,1> xdot;
         // Input
         KDL::JntArray x_cmd_;
+
+        //Trajectory
+        int Motion = 1;
+        VectorXi TrajFlag_j;
+        VectorXi TrajFlag_t;
+        VectorXi TrajFlag_td;
+        Matrix<double,5,1> traj_q;
+        Vector3d traj_x;
+        Matrix<double,6,1> traj_xd;
+        double res_tra[3]={0.0,};
+        double res_trad[6]={0.0,};
+        Matrix3d ROT, ROTD;
 
         // gains
         KDL::JntArray Kp_, Ki_, Kd_;
@@ -470,7 +884,8 @@ namespace  hyuspa_controller
 
         robot *cManipulator;
         HYUControl::Controller *Control;
-
+        hyuCtrl::Trajectory *traj5th_joint;
+        hyuCtrl::Trajectory *traj5th_task;
 
     };
 }

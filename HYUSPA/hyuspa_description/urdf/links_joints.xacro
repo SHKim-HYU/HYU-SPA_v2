@@ -104,12 +104,6 @@
         <origin rpy="${origin_rpy}" xyz="${origin_xyz}" />
         <inertia ixx="${ixx}" ixy="${ixy}" ixz="${ixz}" iyy="${iyy}" iyz="${iyz}" izz="${izz}" />
       </inertial>
-      <collision>
-        <origin rpy="${colvis_rpy}" xyz="${colvis_xyz}" />
-        <geometry>
-          <mesh filename="${meshfile}" scale="${meshscale}"/>
-        </geometry>
-      </collision>
       <visual>
         <origin rpy="${colvis_rpy}" xyz="${colvis_xyz}" />
         <geometry>
@@ -119,6 +113,12 @@
       </visual>
     </link>
   </xacro:macro>
+<!--  <collision>
+    <origin rpy="${colvis_rpy}" xyz="${colvis_xyz}" />
+    <geometry>
+      <mesh filename="${meshfile}" scale="${meshscale}"/>
+    </geometry>
+  </collision>-->
 
 </robot>
 

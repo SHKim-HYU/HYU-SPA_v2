@@ -32,6 +32,8 @@ public:
 	Adjoint AdjointDualMatrix( SE3 _SE3 );
 	adjoint adjointMatrix( se3 _se3 );
 	adjoint adjointDualMatrix( se3 _se3 );
+	Matrix3d MatrixLog3(Matrix3d& R);
+	Vector3d so3ToVec(Matrix3d& so3mat);
 
 	SE3 SE3Matrix(se3 _Twist, double _q);
 //	Matrix<double, 7, 1> AxisAng6(se3 expc6);

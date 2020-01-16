@@ -21,14 +21,15 @@ robot::~robot() {
 
 void robot::robot_update_R(void)
 {
-    pDyn = new Liedynamics;
-    pKin = new PoEKinematics;
+    pKin = new PoEKinematics();
+    pCoM = new PoEKinematics();
+    pDyn = new Liedynamics(*pKin, *pCoM);
 
-	w[0] << 0, 1, 0;
-	w[1] << 1, 0, 0;
-	w[2] << 0, 1, 0;
+	w[0] << 0, -1, 0;
+	w[1] << -1, 0, 0;
+	w[2] << 0, -1, 0;
 	w[3] << 0, 0, 1;
-	w[4] << 0, 1, 0;
+	w[4] << 0, -1, 0;
 	/*
 	p[0] << 0, 0, 0;
 	p[1] << 0, - LINK_12, 0;
@@ -44,26 +45,26 @@ void robot::robot_update_R(void)
 	L[4] << 0, -LINK_56, 0;
 	L[5] << 0, -LINK_6e, 0;
 	*/
-	p[0] << 0, 0, 0;
-	p[1] << 0, LINK_12, 0;
-	p[2] << 0, 0, 0;
-	p[3] << 0, LINK_12 + LINK_23 + LINK_34, 0;
-	p[4] << 0, 0, 0;
+	p[0] << 0, BASE_Y, BASE_Z;
+	p[1] << 0, BASE_Y - LINK_12, BASE_Z;
+	p[2] << 0, BASE_Y - LINK_12 - LINK_23, BASE_Z;
+	p[3] << 0, BASE_Y - LINK_12 - LINK_23 - LINK_34, BASE_Z;
+	p[4] << 0, BASE_Y - LINK_12 - LINK_23 - LINK_34 - LINK_45, BASE_Z;
 
 //	p[5] << 0, LINK_23 + LINK_45 + LINK_34 + LINK_56, 0;
 
-	L[0] << 0, LINK_12, 0;
-	L[1] << 0, LINK_12 + LINK_23, 0;
-	L[2] << 0, LINK_12 + LINK_23 + LINK_34, 0;
-	L[3] << 0, LINK_12 + LINK_23 + LINK_34 + LINK_45, 0;
-	L[4] << 0, LINK_12 + LINK_23 + LINK_34 + LINK_45 + LINK_56, 0;
+	L[0] << 0, BASE_Y - LINK_12, BASE_Z;
+	L[1] << 0, BASE_Y - LINK_12 - LINK_23, BASE_Z;
+	L[2] << 0, BASE_Y - LINK_12 - LINK_23 - LINK_34, BASE_Z;
+	L[3] << 0, BASE_Y - LINK_12 - LINK_23 - LINK_34 - LINK_45, BASE_Z;
+	L[4] << 0, BASE_Y - LINK_12 - LINK_23 - LINK_34 - LINK_45 - LINK_56 , BASE_Z; //If want to compare FK or Jacobian of KDL Lib, it needs to remove the LINK56
 	//L[5] << 0, LINK_6e, 0;
 
-	CoM[0] << -0.00014, 0.03697, 0.00001;
-	CoM[1] << 0.00343, 0.10327, 0.00002;
-	CoM[2] << 0.0007, 0.06202, -0.00304;
-	CoM[3] << -0.00463, 0.04184, -0.00004;
-	CoM[4] << -0.00003, 0.15862, -0.00013;
+	CoM[0] << -0.00084,    BASE_Y - 0.033665,                                        BASE_Z - 0.00002;
+	CoM[1] << -0.00366,    BASE_Y - LINK_12 - 0.10318,                               BASE_Z + 0.00003;
+	CoM[2] << -0.0030362,  BASE_Y - LINK_12 - LINK_23 - 0.06202,                     BASE_Z + 0.00069786;
+	CoM[3] << -0.00004,    BASE_Y - LINK_12 - LINK_23 - LINK_34 -  0.041284,         BASE_Z - 0.00463;
+	CoM[4] << 0.00229,     BASE_Y - LINK_12 - LINK_23 - LINK_34 - LINK_45 - 0.13004, BASE_Z + 0.00324;
 
 	inertia[0] << J_Ixx_1, J_Ixy_1, J_Ixz_1,
 		J_Ixy_1, J_Iyy_1, J_Iyz_1,
@@ -85,26 +86,23 @@ void robot::robot_update_R(void)
 		J_Ixy_5, J_Iyy_5, J_Iyz_5,
 		J_Ixz_5, J_Iyz_5, J_Izz_5;
 
-//	inertia[5] << J_Ixx_6, J_Ixy_6, J_Ixz_6,
-//		J_Ixy_6, J_Iyy_6, J_Iyz_6,
-//		J_Ixz_6, J_Iyz_6, J_Izz_6;
 
-	mass[0] = CoM[0].norm() / LINK_12 * MASS_1;
-	mass[1] = CoM[1].norm() / LINK_23 * MASS_2;
-	mass[2] = CoM[2].norm() / LINK_34 * MASS_3;
-	mass[3] = CoM[3].norm() / LINK_45 * MASS_4;
-	mass[4] = CoM[4].norm() / LINK_56 * MASS_5;
-	/*
-	mass[0] = MASS_1;
-	mass[1] = MASS_2;
-	mass[2] = MASS_3;
-	mass[3] = MASS_4;
-	mass[4] = MASS_5;
-	//mass[5] = MASS_6;
-*/
+
+	//mass[0] = CoM[0].norm() / LINK_12 * MASS_1;
+	//mass[1] = CoM[1].norm() / LINK_23 * MASS_2;
+	//mass[2] = CoM[2].norm() / LINK_34 * MASS_3;
+	//mass[3] = CoM[3].norm() / LINK_45 * MASS_4;
+	//mass[4] = CoM[4].norm() / LINK_56 * MASS_5;
+    mass[0] = MASS_1;
+    mass[1] = MASS_2;
+    mass[2] = MASS_3;
+    mass[3] = MASS_4;
+    mass[4] = MASS_5;
+
     for(int i=0; i<ROBOT_DOF; ++i)
     {
     	pDyn->UpdateDynamicInfo(inertia[i] , mass[i], i+1);
+        pCoM->UpdateKinematicInfo_R(w[i], p[i], CoM[i],i+1);
     	pKin->UpdateKinematicInfo_R(w[i], p[i], L[i], i+1);
     }
 

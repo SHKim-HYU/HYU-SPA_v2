@@ -24,11 +24,12 @@ hyuspa:
       Arm_Joint_5:
         pid: {p: 20.0, i: 100.0, d: 1.0}
 
-    root_link: world
+    root_link: Arm_Link_00
     tip_link1: Arm_Link_05
 
     ctr_obj: 1
 
     ik_mode: 2
 
-    clik_gain: {K_regulation: 6.0, K_tracking: 1.0}
+    clik_gain: {K_regulation: 30, K_tracking: 1.0}
+#30

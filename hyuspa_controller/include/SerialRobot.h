@@ -71,7 +71,9 @@ public:
 	void ENCtoRAD_R(int *enc, Jointd& q);
 	void ENCtoRAD_R(int *enc, Jointd& q, Jointd& q_dot, double s_time);
 	void ELMO_OUTPUT_R(MOTOR_INFO *motor, Jointd& torque, short *output);
+
 	HYUMotionDynamics::Liedynamics *pDyn;
+	HYUMotionKinematics::PoEKinematics *pCoM;
 	HYUMotionKinematics::PoEKinematics *pKin;
 
 

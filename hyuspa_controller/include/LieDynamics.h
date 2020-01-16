@@ -47,6 +47,7 @@ class Liedynamics : public HYUMotionKinematics::PoEKinematics
 public:
 	Liedynamics();
 	~Liedynamics();
+    Liedynamics(HYUMotionKinematics::PoEKinematics &_PoEKin, HYUMotionKinematics::PoEKinematics &_PoECoM);
 
 protected:
 
@@ -67,6 +68,9 @@ private:
 	Matrix6n6nd ad_Aqd;
 	Matrix6n6nd ad_V;
 	Vector6nd V;
+
+	HYUMotionKinematics::PoEKinematics *pCoM;
+	HYUMotionKinematics::PoEKinematics *pLink; //for Jacobian of Task Space Control
 
 	int isFirstRun;
 
@@ -89,11 +93,14 @@ public:
 
 
 	Matrixd C_Matrix(void);
+	Matrixd C_out(void);
 	Matrixd C_verify;
 
 	Jointd G_Matrix(void);
 	Jointd G_verify;
 	Jointd q_d;
+
+    void Mdot_Matrix( MatrixXd &_Mdot );
 
 	Matrix6nnd noz;
 	Matrix6n6nd nos;

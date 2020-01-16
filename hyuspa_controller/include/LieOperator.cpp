@@ -108,6 +108,34 @@ SE3 LieOperator::SE3Matrix(se3 _Twist, double _q)
 
 	return res;
 }
+Matrix3d LieOperator::MatrixLog3(Matrix3d & R)
+{
+    double acosinput = (R.trace() - 1) / 2.0;
+    MatrixXd m_ret = MatrixXd::Zero(3, 3);
+    if (acosinput >= 1)
+        return m_ret;
+    else if (acosinput <= -1) {
+        Vector3d omg;
+        if (!NearZero(1 + R(2, 2)))
+            omg = (1.0 / std::sqrt(2 * (1 + R(2, 2))))*Eigen::Vector3d(R(0, 2), R(1, 2), 1 + R(2, 2));
+        else if (!NearZero(1 + R(1, 1)))
+            omg = (1.0 / std::sqrt(2 * (1 + R(1, 1))))*Eigen::Vector3d(R(0, 1), 1 + R(1, 1), R(2, 1));
+        else
+            omg = (1.0 / std::sqrt(2 * (1 + R(0, 0))))*Eigen::Vector3d(1 + R(0, 0), R(1, 0), R(2, 0));
+        m_ret = SkewMatrix(M_PI * omg);
+        return m_ret;
+    }
+    else {
+        double theta = std::acos(acosinput);
+        m_ret = theta / 2.0 / sin(theta)*(R - R.transpose());
+        return m_ret;
+    }
+}
+Vector3d LieOperator::so3ToVec(Matrix3d& so3mat) {
+    Eigen::Vector3d v_ret;
+    v_ret << so3mat(2, 1), so3mat(0, 2), so3mat(1, 0);
+    return v_ret;
+}
 /*
 Matrix<double, 7, 1> LieOperator::AxisAng6(se3 expc6) {
 	Matrix<double, 7, 1> S_theta;

@@ -20,6 +20,9 @@ using namespace Eigen;
 typedef Matrix<double, ROBOT_DOF, 1> Jointd;
 typedef Matrix<double, 6, ROBOT_DOF> Jaco;
 typedef Matrix<double,ROBOT_DOF,6> InvJaco;
+typedef Matrix<double,3,ROBOT_DOF> LinJaco;
+typedef Matrix<double,ROBOT_DOF,3>  PinvLJaco;
+
 
 namespace HYUMotionKinematics {
 
@@ -40,23 +43,49 @@ public:
 
 	Jaco SpaceJacobian(void);
 	Jaco BodyJacobian(void);
-	Matrix<double, 3, 6> AnalyticJacobian(void);
+	Jaco AnalyticJacobian();
+	//Matrix<double, 3, ROBOT_DOF> AnalyticJacobian(void);
+    LinJaco LinearJacobian(void);
 
 	InvJaco Pinv(Jaco _j);
 	Matrix<double,6,3> Pinv(Matrix<double,3,6> _j);
+	PinvLJaco Pinv(LinJaco _j);
+	PinvLJaco DPI(LinJaco _j);
+	InvJaco DPI(Jaco _j);
 
 	Vector3d ForwardKinematics(void);
 	Vector3d GetEulerAngle(void);
+	Vector4d GetQuaternion(void);
 	Matrix3d Rot(void);
+	SE3 GetTMat(int _i, int _j);
+	double Manipulability(LinJaco _J);
+	double Manipulability(Jaco _J);
+	double Condition_Number(LinJaco _J);
+	LinJaco Jacobian_l_dot();
 //	Vector4d InverseKinematics(Matrix4d _td, )
 	void Unflag_isInfoupdate();
 
+
+    se3 A[ROBOT_DOF+1];
 private:
 	int RobotDoF;
 	Jaco Jacobian;
 	Jaco _SpaceJacobian;
 	Jaco _BodyJacobian;
-	Matrix<double, 3, 6> _AnalyticJacobian;
+    Jaco _AnalyticJacobian;
+	LinJaco linjacobian;
+	LinJaco linjacobian_old;
+	PinvLJaco PinvLinJaco;
+	LinJaco _LinJaco_dot;
+
+	Matrix<double,4,4> _BaseT;
+	Matrix<double,4,4> _EndT;
+    se3 twist;
+    double w, k;
+    Vector4d quat;
+
+    VectorXd q_;
+
 
 
 
@@ -67,7 +96,7 @@ protected:
 	SE3 Exp_S[ROBOT_DOF+1];
 	Matrix3d RotMat;
 
-	se3 A[ROBOT_DOF+1];
+
 	se3 v_se3[ROBOT_DOF+1];
 
 	int isInfoUpdated;
