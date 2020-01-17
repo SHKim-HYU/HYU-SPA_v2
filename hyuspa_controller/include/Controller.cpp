@@ -653,14 +653,74 @@ void Controller::CLIKController_2nd(double *_q, double *_qdot, Matrix<double,5,1
         qd_old = q;
         q_flag=1;
     }
-    dq_ddot= DPI_l_jaco*(xd_ddot - l_Jaco_dot*qdot +250000*(xd-x)+1000*(xd_dot-x_dot));
-    dq_dot = qd_dot_old + dq_ddot*_dt;
-    dq = qd_old + dq_dot*_dt;
+
+    qd_ddot= DPI_l_jaco*(xd_ddot - l_Jaco_dot*qdot +250000*(xd-x)+1000*(xd_dot-x_dot));
+    qd_dot = qd_dot_old + qd_ddot*_dt;
+    qd = qd_old + qd_dot*_dt;
     if(q_flag==1)
     {
-        qd_dot_old=dq_dot;
-        qd_old=dq;
+        qd_dot_old=qd_dot;
+        qd_old=qd;
     }
+    dq=qd;
+    dq_dot=qd_dot;
+    dq_ddot=qd_ddot;
+}
+
+void Controller::VSD(double *_q, double *_qdot, Vector3d &xd, double *toq)
+{
+    int tmp_M=0;
+    mvZeta0_=0.2; mvZeta1_=2.5; mvK_=100;
+    mvC0_.resize(this->m_Jnum);
+    M.resize(this->m_Jnum,this->m_Jnum);
+    q.resize(this->m_Jnum);
+    q=Map<VectorXd>(_q,this->m_Jnum);
+    qdot.resize(this->m_Jnum);
+    qdot=Map<VectorXd>(_qdot,this->m_Jnum);
+
+    x=pManipulator->pKin->ForwardKinematics();
+    l_Jaco=pManipulator->pKin->LinearJacobian();
+    x_dot=l_Jaco*qdot;
+    M=pManipulator->pDyn->M_Matrix();
+    G=pManipulator->pDyn->G_Matrix();
+
+    for(int i=0; i<m_Jnum ; i++)
+    {
+        for(int j=0; j<m_Jnum ; j++)
+        {
+            tmp_M+=M(i,j);
+        }
+        mvC0_(i)=mvZeta0_*sqrt(mvK_)*sqrt(abs(tmp_M));
+    }
+
+    u0=-mvC0_.cwiseProduct(qdot)-l_Jaco.transpose()*(mvK_*(x-xd)+mvZeta1_*sqrt(mvK_)*x_dot)+G;
+    for(int i=0; i<m_Jnum; ++i)
+    {
+
+        if(i==0){
+
+            toq[i] = u0(i);
+        }
+        else if(i==1){
+
+            toq[i] = u0(i);
+        }
+        else if(i==2){
+
+            toq[i] = u0(i);
+        }
+        else if(i==3){
+
+            toq[i] = u0(i);
+        }
+        else if(i==4){
+
+            toq[i] = u0(i);
+        }
+        else
+            return;
+    }
+
 }
 
 Jointd Controller::return_u0(void)

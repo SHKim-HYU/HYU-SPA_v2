@@ -447,7 +447,10 @@ namespace  hyuspa_controller
                         qd_dot[i] = res_tra[1];
                         qd_ddot[i]=res_tra[2];
                         if(TrajFlag_j[i]==0)
-                            TrajFlag_j[i]=3;
+                        {
+                            TrajFlag_j[i] = 3;
+                            traj_flag=1;
+                        }
                     }
                     else if(TrajFlag_j(i)==1) {
                         traj5th_joint->SetPolynomial5th(i, q[i], traj_q(i), t, 2.0, res_tra);
@@ -573,7 +576,7 @@ namespace  hyuspa_controller
                         xdddot[i]=res_tra[2];
                     }
                     else {
-                        traj5th_task->SetPolynomial5th(i, x[i], traj_x(i), t, 5.0, res_tra);
+                        traj5th_task->SetPolynomial5th(i, x[i], traj_x(i), t, 2.0, res_tra);
                         xd[i] = res_tra[0];
                         xddot[i]=res_tra[1];
                         xdddot[i]=res_tra[2];
@@ -642,34 +645,36 @@ namespace  hyuspa_controller
 */
                 ///////////////////
                 ///// qd CLIK
-             /*   if(q_flag==0)
+ /*               if(q_flag==0)
                 {
                     qd_dot_old = Map<VectorXd>(qdot, 5);
                     qd_old = Map<VectorXd>(q, 5);
 
                     q_flag=1;
                 }
-                qd_ddot=DPI_jaco*(xdddot - l_jaco_dot*qdot_.data+25000*(xd-x)+100*(xddot-xdot));
+                qd_ddot=DPI_jaco*(xdddot - l_jaco_dot*qdot_.data+250000*(xd-x)+1000*(xddot-xdot));
                 qd_dot = qd_dot_old + qd_ddot*dt;
-                qd = qd_old + qd_dot*dt;
+                qd = qd_old + qd_dot*dt - qd_ddot*pow(dt,2)/2;
                 if(q_flag==1)
                 {
                     qd_dot_old=qd_dot;
                     qd_old=qd;
                 }*/
                 ////////////////////
-               Control->CLIKController_2nd(q,qdot,qd,qd_dot,qd_ddot, xd,xddot,xdddot, dt);
             }
-
                for(int i=0;i<n_joints_;i++)
                {
                    dq[i]=qd(i);
                    dqdot[i]=qd_dot(i);
                }
 
-            cManipulator->pDyn->Prepare_Dynamics(dq,dqdot);
+            cManipulator->pDyn->Prepare_Dynamics(q,qdot);
 
-            Control->ComputedTorque(q, qdot, qd, qd_dot, qd_ddot, torque);
+            if(traj_flag==0)
+                Control->PD_Gravity(q, qdot, qd, qd_dot, torque);
+            else
+               Control->VSD(q,qdot,traj_x,torque);
+            //Control->ComputedTorque(q, qdot, qd, qd_dot, qd_ddot, torque);
             //Control->PD_Gravity(q, qdot, qd, qd_dot, torque);
             //Control->Inverse_Dynamics_Control(q, qdot, qd, qd_dot, qd_ddot, torque);
             //Control->Gravity(q,qdot,torque);
@@ -864,6 +869,7 @@ namespace  hyuspa_controller
         double res_tra[3]={0.0,};
         double res_trad[6]={0.0,};
         Matrix3d ROT, ROTD;
+        int traj_flag=0;
 
         // gains
         KDL::JntArray Kp_, Ki_, Kd_;

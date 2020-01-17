@@ -54,6 +54,7 @@ public:
     void CLIKController_2nd(double *_q, double *_qdot, Matrix<double,5,1>& dq, Matrix<double,5,1>& dq_dot, Matrix<double,5,1>& dq_ddot, Vector3d& xd, Vector3d& xd_dot, Vector3d& xd_ddot, double _dt);
 
 	void TorqueOutput(double *p_toq, int maxtoq, int *p_dir);
+    void VSD(double *_q, double *_qdot, Vector3d &xd, double *toq);
 	//void TorqueOutput(double *p_toq , int maxtoq);
 	Jointd return_u0(void);
 
@@ -90,6 +91,8 @@ private:
 
     MatrixXd LinearJacobian;
 
+    VectorXd mvC0_;
+    double mvK_, mvZeta_, mvZeta0_, mvZeta1_;
 
     Jointd u0;
     VectorXd ax;
