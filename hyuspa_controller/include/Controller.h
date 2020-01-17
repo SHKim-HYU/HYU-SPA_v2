@@ -92,7 +92,7 @@ private:
     MatrixXd LinearJacobian;
 
     VectorXd mvC0_;
-    double mvK_, mvZeta_, mvZeta0_, mvZeta1_;
+    double mvK_, mvKsi_, mvZeta0_, mvZeta1_;
 
     Jointd u0;
     VectorXd ax;

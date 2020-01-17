@@ -670,14 +670,15 @@ void Controller::CLIKController_2nd(double *_q, double *_qdot, Matrix<double,5,1
 void Controller::VSD(double *_q, double *_qdot, Vector3d &xd, double *toq)
 {
     int tmp_M=0;
-    mvZeta0_=0.2; mvZeta1_=2.5; mvK_=100;
+    mvZeta0_=0.2; mvZeta1_=2.5; mvK_=250; mvKsi_=0.2;
     mvC0_.resize(this->m_Jnum);
     M.resize(this->m_Jnum,this->m_Jnum);
     q.resize(this->m_Jnum);
     q=Map<VectorXd>(_q,this->m_Jnum);
     qdot.resize(this->m_Jnum);
     qdot=Map<VectorXd>(_qdot,this->m_Jnum);
-
+    qd.resize(this->m_Jnum);
+    qd<<0.0, -1.57, 0.0, 0.0, 0.0;
     x=pManipulator->pKin->ForwardKinematics();
     l_Jaco=pManipulator->pKin->LinearJacobian();
     x_dot=l_Jaco*qdot;
@@ -692,8 +693,8 @@ void Controller::VSD(double *_q, double *_qdot, Vector3d &xd, double *toq)
         }
         mvC0_(i)=mvZeta0_*sqrt(mvK_)*sqrt(abs(tmp_M));
     }
-
-    u0=-mvC0_.cwiseProduct(qdot)-l_Jaco.transpose()*(mvK_*(x-xd)+mvZeta1_*sqrt(mvK_)*x_dot)+G;
+    //u0=-mvC0_.cwiseProduct(qdot)-l_Jaco.transpose()*(mvK_*(x-xd)+mvZeta1_*sqrt(mvK_)*x_dot)+G;
+    u0=-mvC0_.cwiseProduct(qdot)-mvKsi_*mvC0_.cwiseProduct(q-qd)-l_Jaco.transpose()*(mvK_*(x-xd)+mvZeta1_*sqrt(mvK_)*x_dot)+G;
     for(int i=0; i<m_Jnum; ++i)
     {
 

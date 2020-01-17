@@ -425,7 +425,7 @@ namespace  hyuspa_controller
             ////////////////////////
 
 
-           if(t<=3)
+           if(t<=5)
            {
                /////////////Trajectory for Joint Space//////////////
                if(TrajFlag_j[0]==0)
@@ -449,7 +449,6 @@ namespace  hyuspa_controller
                         if(TrajFlag_j[i]==0)
                         {
                             TrajFlag_j[i] = 3;
-                            traj_flag=1;
                         }
                     }
                     else if(TrajFlag_j(i)==1) {
@@ -466,6 +465,7 @@ namespace  hyuspa_controller
             }
             else
             {
+                traj_flag=1;
                 /////////////Trajectory for Task Space//////////////
                 if(Motion==1 &&TrajFlag_t(0)==0)
                 {
@@ -673,7 +673,8 @@ namespace  hyuspa_controller
             if(traj_flag==0)
                 Control->PD_Gravity(q, qdot, qd, qd_dot, torque);
             else
-               Control->VSD(q,qdot,traj_x,torque);
+              // Control->VSD(q,qdot,traj_x,torque);
+                Control->VSD(q,qdot,xd,torque);
             //Control->ComputedTorque(q, qdot, qd, qd_dot, qd_ddot, torque);
             //Control->PD_Gravity(q, qdot, qd, qd_dot, torque);
             //Control->Inverse_Dynamics_Control(q, qdot, qd, qd_dot, qd_ddot, torque);
