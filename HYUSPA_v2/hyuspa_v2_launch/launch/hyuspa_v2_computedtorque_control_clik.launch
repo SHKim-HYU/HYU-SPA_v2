@@ -1,0 +1,5 @@
+<launch>
+    <include file="$(find hyuspa_v2_gazebo)/launch/hyuspa_v2_empty_world.launch"/>
+
+    <include file="$(find hyuspa_v2_control)/launch/computedtorque_control_clik.launch" />
+</launch>

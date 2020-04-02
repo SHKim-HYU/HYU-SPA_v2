@@ -1,0 +1,11 @@
+<library path="lib/libhyuspa_v2_controller">
+
+    <class name="hyuspa_v2_controller/ComputedTorque_Control_CLIK"
+           type="hyuspa_v2_controller::ComputedTorque_Control_CLIK"
+           base_class_type="controller_interface::ControllerBase">
+        <description>
+            Computed Torque Controller with Closed Loop Inverse Kinematics
+        </description>
+    </class>
+
+</library>

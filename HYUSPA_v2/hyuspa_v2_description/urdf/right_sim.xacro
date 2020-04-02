@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<robot name="hyuspa_v2" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  
+  <!-- BGN - Include -->
+  <xacro:include filename="$(find hyuspa_v2_description)/urdf/robot_parameters.xacro" />
+  <xacro:include filename="$(find hyuspa_v2_description)/urdf/links_joints.xacro" />
+  <xacro:property name="PI" value="3.1415926535897931"/>
+
+  <!-- END - Include -->
+
+
+  <link name="world"/>
+
+  <joint name="world_base" type="fixed">
+    <parent link="world"/>
+    <child link="Arm_Link_base"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="Arm_Link_base"/>
+  <joint name="Arm_Joint_base_joint" type="fixed">
+    <parent link="Arm_Link_base"/>
+    <child link="SPA_Base_Link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <m_link_mesh name="${link_00_name}"
+              origin_rpy="0 0 0" origin_xyz="0.0 -0.01869 0.75176"
+              colvis_rpy="0 0 0" colvis_xyz="0 0 0"
+              mass="14.299"
+              ixx="4.7569" ixy="3.5447E-06" ixz="1.3257E-05"
+              iyy="4.7075" iyz="0.21788"
+              izz="0.16593"              
+              meshfile="package://hyuspa_v2_description/meshes/hyuspa_v2/SPA_Base_Link.STL"
+              meshscale="1 1 1" />
+              
+  <m_joint name="Arm_Joint_1" type="revolute"
+           axis_xyz="0 1 0"
+           origin_rpy="0 0 0" origin_xyz="0 -0.3107 1.567"
+           parent="SPA_Base_Link" child="SPA_Link_01" damping="0.0" friction="0.7"
+           limit_e="50" limit_l="-3.09" limit_u="1.11" limit_v="2.4" />
+           
+  <m_link_mesh name="${link_01_name}"
+              origin_rpy="0 0 0" origin_xyz="0.00255 -0.04684 0.00039303"
+              colvis_rpy="0 0 0" colvis_xyz="0 0 0"
+              mass="0.19006"
+              ixx="0.0001285" ixy="6.9599E-06" ixz="3.35E-07"
+              iyy="0.00013782" iyz="-1.5817E-06"
+              izz="0.00017651"
+              meshfile="package://hyuspa_v2_description/meshes/hyuspa_v2/SPA_Link_01.STL"
+              meshscale="1 1 1" />
+               
+  <m_joint name="Arm_Joint_2" type="revolute"
+           axis_xyz="1 0 0"
+           origin_rpy="0 0 0" origin_xyz="0 -0.054 0"
+           parent="SPA_Link_01" child="SPA_Link_02" damping="0.0" friction="0.7"
+           limit_e="50" limit_l="-1.57" limit_u="1.9" limit_v="2.4" />
+           
+  <m_link_mesh name="${link_02_name}"
+              origin_rpy="0 0 0" origin_xyz="0.00093 -0.00217 -0.08254"
+              colvis_rpy="0 0 0" colvis_xyz="0 0 0"
+              mass="1.42162"
+              ixx="0.00368181349" ixy="-0.00018327606" ixz="-0.00000268131"
+              iyy="0.00104405709" iyz="0.00000334569"
+              izz="0.00406650369"
+              meshfile="package://hyuspa_v2_description/meshes/hyuspa_v2/SPA_Link_02.STL"
+              meshscale="1 1 1" />
+              
+  <m_joint name="Arm_Joint_3" type="revolute"
+           axis_xyz="0 0 1"
+           origin_rpy="0 0 0" origin_xyz="0 0 -0.1458"
+           parent="SPA_Link_02" child="SPA_Link_03" damping="0.0" friction="0.7"
+           limit_e="50" limit_l="-1.09" limit_u="1.34" limit_v="2.4" />
+           
+  <m_link_mesh name="${link_03_name}"
+              origin_rpy="0 0 0" origin_xyz="-0.00092 0.00049 -0.11495"
+              colvis_rpy="0 0 0" colvis_xyz="0 0 0"
+              mass="0.2435"
+              ixx="0.00068284" ixy="-8.5183E-06" ixz="-4.7514E-07"
+              iyy="0.00022011" iyz="8.8649E-06"
+              izz="0.00063402"
+              meshfile="package://hyuspa_v2_description/meshes/hyuspa_v2/SPA_Link_03.STL"
+              meshscale="1 1 1" />
+              
+  <m_joint name="Arm_Joint_4" type="revolute"
+           axis_xyz="0 1 0"
+           origin_rpy="0 0 0" origin_xyz="0 0 -0.1542"
+           parent="SPA_Link_03" child="SPA_Link_04" damping="0.0" friction="0.7"
+           limit_e="50" limit_l="-2.48" limit_u="0.156" limit_v="2.4" />
+           
+  <m_link_mesh name="${link_04_name}"
+              origin_rpy="0 0 0" origin_xyz="-0.00204 -0.00034 -0.08047"
+              colvis_rpy="0 0 0" colvis_xyz="0 0 0"
+              mass="1.1894"
+              ixx="0.00324613078" ixy="-0.00000202519" ixz="0.00000011493"
+              iyy="0.00054844144" iyz="0.00023013877"
+              izz="0.00324899669"
+              meshfile="package://hyuspa_v2_description/meshes/hyuspa_v2/SPA_Link_04.STL"
+              meshscale="1 1 1" />
+              
+  <m_joint name="Arm_Joint_5" type="revolute"
+           axis_xyz="0 0 1"
+           origin_rpy="0 0 0" origin_xyz="0 0 -0.1458"
+           parent="SPA_Link_04" child="SPA_Link_05" damping="0.0" friction="0.7"
+           limit_e="50" limit_l="-1.392" limit_u="1.41" limit_v="2.4" />
+           
+  <m_link_mesh name="${link_05_name}"
+              origin_rpy="0 0 0" origin_xyz="0.00000229 -0.00084 -0.11414"
+              colvis_rpy="0 0 0" colvis_xyz="0 0 0"
+              mass="0.36826"
+              ixx="0.00290786470" ixy="0.00008047904" ixz="-0.00001276791"
+              iyy="0.00028211059" iyz="-0.00014451678"
+              izz="0.00306362830"
+              meshfile="package://hyuspa_v2_description/meshes/hyuspa_v2/SPA_Link_05.STL"
+              meshscale="1 1 1" />
+
+  <m_joint name="Arm_Joint_6" type="revolute"
+           axis_xyz="1 0 0"
+           origin_rpy="0 0 0" origin_xyz="0 0 -0.1542"
+           parent="SPA_Link_05" child="SPA_Link_06" damping="0.0" friction="0.7"
+           limit_e="50" limit_l="-1.41" limit_u="1.392" limit_v="2.4" />
+           
+  <m_link_mesh name="${link_06_name}"
+              origin_rpy="0 0 0" origin_xyz="0.00222 0.00091 -0.00853"
+              colvis_rpy="0 0 0" colvis_xyz="0 0 0"
+              mass="0.36826"
+              ixx="0.00290786470" ixy="0.00008047904" ixz="-0.00001276791"
+              iyy="0.00028211059" iyz="-0.00014451678"
+              izz="0.00306362830"
+              meshfile="package://hyuspa_v2_description/meshes/hyuspa_v2/SPA_Link_06.STL"
+              meshscale="1 1 1" />
+
+
+  <!-- END - Robot description -->
+  	<gazebo>
+		<plugin name="p3d_base_controller" filename="libgazebo_ros_p3d.so">
+			<alwaysOn>true</alwaysOn>
+			<updateRate>1000.0</updateRate>
+			<bodyName>SPA_Link_05</bodyName>
+			<topicName>ground_truth/state</topicName>
+			<gaussianNoise>0</gaussianNoise>
+			<frameName>world</frameName>
+			<xyzOffsets>0 0 0</xyzOffsets>
+			<rpyOffsets>0 0 0</rpyOffsets>
+		</plugin>
+	</gazebo>
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+    <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+    <legacyModeNS>true</legacyModeNS>
+    <controlPeriod>0.001</controlPeriod>
+    <robotNamespace>/hyuspa_v2</robotNamespace>
+    </plugin>
+  </gazebo>
+
+</robot>

@@ -1,0 +1,39 @@
+hyuspa_v2:
+  joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 1000
+
+  computedtorque_control_clik:
+    type: hyuspa_v2_controller/ComputedTorque_Control_CLIK
+    joints:
+      - Arm_Joint_1
+      - Arm_Joint_2
+      - Arm_Joint_3
+      - Arm_Joint_4
+      - Arm_Joint_5
+      - Arm_Joint_6
+
+    gains:
+      Arm_Joint_1:
+        pid: {p: 20.0, i: 100.0, d: 1.0}
+      Arm_Joint_2:
+        pid: {p: 20.0, i: 100.0, d: 1.0}
+      Arm_Joint_3:
+        pid: {p: 20.0, i: 100.0, d: 1.0}
+      Arm_Joint_4:
+        pid: {p: 20.0, i: 100.0, d: 1.0}
+      Arm_Joint_5:
+        pid: {p: 20.0, i: 100.0, d: 1.0}
+      Arm_Joint_6:
+        pid: {p: 20.0, i: 100.0, d: 1.0}
+
+
+    root_link: SPA_Base_Link
+    tip_link1: SPA_Link_06
+
+    ctr_obj: 1
+
+    ik_mode: 2
+
+    clik_gain: {K_regulation: 30, K_tracking: 1.0}
+#30
